@@ -138,6 +138,14 @@ func (e *errorT) Cause() error {
 	return e.err
 }
 
+// Name returns the name for the error, which is the first wrapping class.
+func (e *errorT) Name() (string, bool) {
+	if len(e.classes) == 0 {
+		return "", false
+	}
+	return string(*e.classes[0]), true
+}
+
 // summarizeStack writes stack line entries to the writer.
 func summarizeStack(w io.Writer, pcs []uintptr) {
 	frames := runtime.CallersFrames(pcs)

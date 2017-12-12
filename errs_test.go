@@ -116,5 +116,19 @@ func TestErrs(t *testing.T) {
 			assert(t, classes[0] == &foo)
 			assert(t, classes[1] == &bar)
 		})
+
+		t.Run("Name", func(t *testing.T) {
+			name, ok := New("t").(*errorT).Name()
+			assert(t, !ok)
+			assert(t, name == "")
+
+			name, ok = foo.New("t").(*errorT).Name()
+			assert(t, ok)
+			assert(t, name == "foo")
+
+			name, ok = bar.Wrap(foo.New("t")).(*errorT).Name()
+			assert(t, ok)
+			assert(t, name == "foo")
+		})
 	})
 }
