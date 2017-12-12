@@ -88,5 +88,22 @@ func TestErrs(t *testing.T) {
 			assert(t, err == Unwrap(foo.Wrap(err)))
 			assert(t, err == Unwrap(bar.Wrap(foo.Wrap(err))))
 		})
+
+		t.Run("Classes", func(t *testing.T) {
+			err := fmt.Errorf("t")
+			classes := Classes(err)
+			assert(t, classes == nil)
+
+			err = foo.Wrap(err)
+			classes = Classes(err)
+			assert(t, len(classes) == 1)
+			assert(t, classes[0] == &foo)
+
+			err = bar.Wrap(err)
+			classes = Classes(err)
+			assert(t, len(classes) == 2)
+			assert(t, classes[0] == &foo)
+			assert(t, classes[1] == &bar)
+		})
 	})
 }

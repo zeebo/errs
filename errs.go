@@ -21,6 +21,14 @@ func Unwrap(err error) error {
 	return err
 }
 
+// Classes returns all the classes that have wrapped the error.
+func Classes(err error) []*Class {
+	if err, ok := err.(*Error); ok && err != nil {
+		return err.classes
+	}
+	return nil
+}
+
 //
 // error classes
 //

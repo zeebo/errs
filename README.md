@@ -55,6 +55,7 @@ func handleRequest() {
 	if err := checkUser("zeebo", "hunter3"); Unauthorized.Has(err) {
 		fmt.Println(err)
 	}
+
 	// output:
 	// unauthorized: that's not a good password, jerkmo!
 }
@@ -83,6 +84,7 @@ func deep1() error {
 
 func deep() {
 	fmt.Println(deep1())
+
 	// output:
 	// mypackage: unauthorized: ouch
 }
@@ -93,6 +95,20 @@ would return `true`, and the stack trace would only be recorded once at the
 `deep2` call.
 
 ### Utilities
+
+[Classes][Classes] is a helper function to get a slice of [Class][Class]es
+that an error has. The earliest wrap is first in the slice. For example:
+
+```go
+func getClasses() {
+	classes := errs.Classes(deep1())
+	fmt.Println(classes[0] == &Unauthorized)
+	fmt.Println(classes[1] == &Error)
+
+	// output:
+	// true
+	// true
+}
 
 Finally, a helper function, [Unwrap][Unwrap] is provided to get the
 [Wrap][Wrap]ped error in cases where you might want to inspect details. For
