@@ -109,6 +109,7 @@ func getClasses() {
 	// true
 	// true
 }
+```
 
 Finally, a helper function, [Unwrap][Unwrap] is provided to get the
 [Wrap][Wrap]ped error in cases where you might want to inspect details. For
