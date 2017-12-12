@@ -13,17 +13,30 @@ func New(format string, args ...interface{}) error {
 	return (*Class).create(nil, 3, fmt.Errorf(format, args...))
 }
 
-// Unwrap returns the underlying error, if any, or just the error.
+// Unwrap returns the underlying error, if any, or just the error. It returns
+// nil if any error claims it was caused by nil.
 func Unwrap(err error) error {
-	if err, ok := err.(*Error); ok && err != nil {
-		return err.err
+	// causer is an interface that the ecosystem has decided on to get at error
+	// causes.
+	type causer interface {
+		Cause() error
 	}
+
+	// we call Cause as much as possible.
+	for err != nil {
+		causer, ok := err.(causer)
+		if !ok {
+			break
+		}
+		err = causer.Cause()
+	}
+
 	return err
 }
 
 // Classes returns all the classes that have wrapped the error.
 func Classes(err error) []*Class {
-	if err, ok := err.(*Error); ok && err != nil {
+	if err, ok := err.(*errorT); ok && err != nil {
 		return err.classes
 	}
 	return nil
@@ -39,7 +52,7 @@ type Class string
 
 // Has returns true if the passed in error was wrapped by this class.
 func (c *Class) Has(err error) bool {
-	if err, ok := err.(*Error); ok {
+	if err, ok := err.(*errorT); ok {
 		for _, class := range err.classes {
 			if class == c {
 				return true
@@ -64,7 +77,11 @@ func (c *Class) Wrap(err error) error {
 // create constructs the error, or just adds the class to the error, keeping
 // track of the stack if it needs to construct it.
 func (c *Class) create(depth int, err error) error {
-	if err, ok := err.(*Error); ok {
+	if err == nil {
+		return nil
+	}
+
+	if err, ok := err.(*errorT); ok {
 		if c != nil {
 			err.classes = append(err.classes, c)
 		}
@@ -79,7 +96,7 @@ func (c *Class) create(depth int, err error) error {
 		classes = append(classes, c)
 	}
 
-	return &Error{
+	return &errorT{
 		classes: classes,
 		err:     err,
 		pcs:     pcs[:n:n],
@@ -90,26 +107,21 @@ func (c *Class) create(depth int, err error) error {
 // errors
 //
 
-// Error is the type of errors returned from this package.
-type Error struct {
+// errorT is the type of errors returned from this package.
+type errorT struct {
 	classes []*Class
 	pcs     []uintptr
 	err     error
 }
 
-// Error implements the error interface.
-func (e *Error) Error() string {
+// errorT implements the error interface.
+func (e *errorT) Error() string {
 	return fmt.Sprintf("%v", e)
 }
 
 // Format handles the formatting of the error. Using a "+" on the format string
 // specifier will also write the stack trace.
-func (e *Error) Format(f fmt.State, c rune) {
-	if e == nil {
-		f.Write([]byte("<nil>"))
-		return
-	}
-
+func (e *errorT) Format(f fmt.State, c rune) {
 	for i := len(e.classes) - 1; i >= 0; i-- {
 		fmt.Fprintf(f, "%s: ", string(*e.classes[i]))
 	}
@@ -118,6 +130,12 @@ func (e *Error) Format(f fmt.State, c rune) {
 	if f.Flag(int('+')) {
 		summarizeStack(f, e.pcs)
 	}
+}
+
+// Cause implements the interface wrapping errors are expected to implement
+// to allow getting at underlying causes.
+func (e *errorT) Cause() error {
+	return e.err
 }
 
 // summarizeStack writes stack line entries to the writer.

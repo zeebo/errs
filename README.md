@@ -17,7 +17,7 @@ func checkThing() error {
 }
 ```
 
-Why is it better? [Error][Error]s come with a stack trace that is only printed
+Why is it better? Errors come with a stack trace that is only printed
 when a `"+"` character is used in the format string. This should retain the
 benefits of being able to diagnose where and why errors happen, without all of
 the noise of printing a stack trace in every situation. For example:
@@ -36,8 +36,8 @@ func doSomeRealWork() {
 ### Error Classes
 
 You can create a [Class][Class] of errors and check if any error was created by
-that [Class][Class]. The [Class][Class] name is prefixed to all of the
-[Error][Error]s it creates. For example:
+that [Class][Class]. The [Class][Class] name is prefixed to all of the errors
+it creates. For example:
 
 ```go
 var Unauthorized = errs.Class("unauthorized")
@@ -148,6 +148,5 @@ add yourself to the list in AUTHORS.
 [New]: https://godoc.org/github.com/zeebo/errs#New
 [Class]: https://godoc.org/github.com/zeebo/errs#Class
 [Wrap]: https://godoc.org/github.com/zeebo/errs#Class.Wrap
-[Error]: https://godoc.org/github.com/zeebo/errs#Error
 [Unwrap]: https://godoc.org/github.com/zeebo/errs#Unwrap
 [Classes]: https://godoc.org/github.com/zeebo/errs#Classes

@@ -6,6 +6,10 @@ import (
 	"testing"
 )
 
+type causeError struct{ error }
+
+func (c causeError) Cause() error { return c.error }
+
 func TestErrs(t *testing.T) {
 	assert := func(t *testing.T, v bool, err ...interface{}) {
 		if !v {
@@ -48,6 +52,10 @@ func TestErrs(t *testing.T) {
 			assert(t, !c1.Has(c2.New("t")))
 			assert(t, c2.Has(c2.New("t")))
 		})
+
+		t.Run("Wrap Nil", func(t *testing.T) {
+			assert(t, foo.Wrap(nil) == nil)
+		})
 	})
 
 	t.Run("Error", func(t *testing.T) {
@@ -75,11 +83,6 @@ func TestErrs(t *testing.T) {
 			)
 		})
 
-		t.Run("Format Nil", func(t *testing.T) {
-			var err *Error
-			assert(t, fmt.Sprintf("%v", err) == "<nil>")
-		})
-
 		t.Run("Unwrap", func(t *testing.T) {
 			err := fmt.Errorf("t")
 
@@ -87,6 +90,14 @@ func TestErrs(t *testing.T) {
 			assert(t, err == Unwrap(err))
 			assert(t, err == Unwrap(foo.Wrap(err)))
 			assert(t, err == Unwrap(bar.Wrap(foo.Wrap(err))))
+			assert(t, err == Unwrap(causeError{error: err}))
+		})
+
+		t.Run("Cause", func(t *testing.T) {
+			err := fmt.Errorf("t")
+
+			assert(t, err == foo.Wrap(err).(*errorT).Cause())
+			assert(t, err == bar.Wrap(foo.Wrap(err)).(*errorT).Cause())
 		})
 
 		t.Run("Classes", func(t *testing.T) {
