@@ -5,6 +5,8 @@
 
 errs is a package for making errors friendly and easy.
 
+### Creating Errors
+
 The easiest way to use it, is to use the package level [New][New] function.
 It's much like `fmt.Errorf`, but better. For example:
 
@@ -29,6 +31,8 @@ func doSomeRealWork() {
 	}
 }
 ```
+
+### Error Classes
 
 You can create a [Class][Class] of errors and check if any error was created by
 that [Class][Class]. The [Class][Class] name is prefixed to all of the
@@ -87,6 +91,8 @@ func deep() {
 In the above example, both `Error.Has(deep1())` and `Unauthorized.Has(deep1())`
 would return `true`, and the stack trace would only be recorded once at the
 `deep2` call.
+
+### Utilities
 
 Finally, a helper function, [Unwrap][Unwrap] is provided to get the
 [Wrap][Wrap]ped error in cases where you might want to inspect details. For
