@@ -1,4 +1,4 @@
-// package errdata helps with associating some data to error classes
+// Package errdata helps with associating some data to error classes
 package errdata
 
 import (
@@ -25,7 +25,7 @@ func makeKey(class *errs.Class, k interface{}) key {
 	}
 }
 
-// Set assoicates the value for the given key and class. Errors wrapped by the
+// Set associates the value for the given key and class. Errors wrapped by the
 // class will return the value in the call to Get for the key.
 func Set(class *errs.Class, key interface{}, value interface{}) {
 	registry.Store(makeKey(class, key), value)

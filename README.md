@@ -2,6 +2,7 @@
 
 [![GoDoc](https://godoc.org/github.com/zeebo/errs?status.svg)](https://godoc.org/github.com/zeebo/errs)
 [![Sourcegraph](https://sourcegraph.com/github.com/zeebo/errs/-/badge.svg)](https://sourcegraph.com/github.com/zeebo/errs?badge)
+[![Go Report Card](https://goreportcard.com/badge/github.com/zeebo/errs)](https://goreportcard.com/report/github.com/zeebo/errs)
 
 errs is a package for making errors friendly and easy.
 

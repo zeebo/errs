@@ -1,4 +1,4 @@
-// package errs provides a simple error package with stack traces.
+// Package errs provides a simple error package with stack traces.
 package errs
 
 import (
