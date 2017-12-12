@@ -149,3 +149,4 @@ add yourself to the list in AUTHORS.
 [Wrap]: https://godoc.org/github.com/zeebo/errs#Class.Wrap
 [Error]: https://godoc.org/github.com/zeebo/errs#Error
 [Unwrap]: https://godoc.org/github.com/zeebo/errs#Unwrap
+[Classes]: https://godoc.org/github.com/zeebo/errs#Classes
