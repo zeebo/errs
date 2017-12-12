@@ -121,6 +121,7 @@ errs is released under an MIT License. If you want to contribute, be sure to
 add yourself to the list in AUTHORS.
 
 
+[New]: https://godoc.org/github.com/zeebo/errs#New
 [Class]: https://godoc.org/github.com/zeebo/errs#Class
 [Wrap]: https://godoc.org/github.com/zeebo/errs#Class.Wrap
 [Error]: https://godoc.org/github.com/zeebo/errs#Error
