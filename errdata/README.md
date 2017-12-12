@@ -1,7 +1,7 @@
 # errdata
 
-[![GoDoc](https://godoc.org/github.com/zeebo/errdata?status.svg)](https://godoc.org/github.com/zeebo/errdata)
-[![Sourcegraph](https://sourcegraph.com/github.com/zeebo/errdata/-/badge.svg)](https://sourcegraph.com/github.com/zeebo/errdata?badge)
+[![GoDoc](https://godoc.org/github.com/zeebo/errs/errdata?status.svg)](https://godoc.org/github.com/zeebo/errs/errdata)
+[![Sourcegraph](https://sourcegraph.com/github.com/zeebo/errs/errdata/-/badge.svg)](https://sourcegraph.com/github.com/zeebo/errs/errdata?badge)
 
 errdata helps with associating some data to error classes.
 
