@@ -13,6 +13,12 @@ func New(format string, args ...interface{}) error {
 	return (*Class).create(nil, 3, fmt.Errorf(format, args...))
 }
 
+// Wrap returns an error not contained in any class. It just associates a stack
+// trace with the error.
+func Wrap(err error) error {
+	return (*Class).create(nil, 3, err)
+}
+
 // Unwrap returns the underlying error, if any, or just the error. It returns
 // nil if any error claims it was caused by nil.
 func Unwrap(err error) error {
