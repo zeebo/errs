@@ -18,9 +18,10 @@ func TestErrs(t *testing.T) {
 	}
 
 	var (
-		foo = Class("foo")
-		bar = Class("bar")
-		baz = Class("baz")
+		foo   = Class("foo")
+		bar   = Class("bar")
+		baz   = Class("baz")
+		empty = Class("")
 	)
 
 	t.Run("Class", func(t *testing.T) {
@@ -129,6 +130,11 @@ func TestErrs(t *testing.T) {
 			name, ok = bar.Wrap(foo.New("t")).(*errorT).Name()
 			assert(t, ok)
 			assert(t, name == "foo")
+		})
+
+		t.Run("Empty String", func(t *testing.T) {
+			assert(t, empty.New("test").Error() == "test")
+			assert(t, foo.Wrap(empty.New("test")).Error() == "foo: test")
 		})
 	})
 }

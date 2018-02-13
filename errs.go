@@ -129,7 +129,10 @@ func (e *errorT) Error() string {
 // specifier will also write the stack trace.
 func (e *errorT) Format(f fmt.State, c rune) {
 	for i := len(e.classes) - 1; i >= 0; i-- {
-		fmt.Fprintf(f, "%s: ", string(*e.classes[i]))
+		name := string(*e.classes[i])
+		if len(name) > 0 {
+			fmt.Fprintf(f, "%s: ", name)
+		}
 	}
 	fmt.Fprintf(f, "%v", e.err)
 
