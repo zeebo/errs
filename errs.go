@@ -59,11 +59,8 @@ type Class string
 // Has returns true if the passed in error was wrapped by this class.
 func (c *Class) Has(err error) bool {
 	if err, ok := err.(*errorT); ok {
-		for _, class := range err.classes {
-			if class == c {
-				return true
-			}
-		}
+		_, ok := err.class_set[c]
+		return ok
 	}
 	return false
 }
@@ -89,7 +86,10 @@ func (c *Class) create(depth int, err error) error {
 
 	if err, ok := err.(*errorT); ok {
 		if c != nil {
-			err.classes = append(err.classes, c)
+			if _, ok := err.class_set[c]; !ok {
+				err.classes = append(err.classes, c)
+				err.class_set[c] = struct{}{}
+			}
 		}
 		return err
 	}
@@ -98,14 +98,17 @@ func (c *Class) create(depth int, err error) error {
 	n := runtime.Callers(depth, pcs[:])
 
 	var classes []*Class
+	var class_set = make(map[*Class]struct{})
 	if c != nil {
 		classes = append(classes, c)
+		class_set[c] = struct{}{}
 	}
 
 	return &errorT{
-		classes: classes,
-		err:     err,
-		pcs:     pcs[:n:n],
+		classes:   classes,
+		class_set: class_set,
+		err:       err,
+		pcs:       pcs[:n:n],
 	}
 }
 
@@ -115,9 +118,10 @@ func (c *Class) create(depth int, err error) error {
 
 // errorT is the type of errors returned from this package.
 type errorT struct {
-	classes []*Class
-	pcs     []uintptr
-	err     error
+	classes   []*Class
+	class_set map[*Class]struct{}
+	pcs       []uintptr
+	err       error
 }
 
 // errorT implements the error interface.
