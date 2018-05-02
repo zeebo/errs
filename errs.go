@@ -14,7 +14,7 @@ func New(format string, args ...interface{}) error {
 }
 
 // Wrap returns an error not contained in any class. It just associates a stack
-// trace with the error.
+// trace with the error. Wrap returns nil if err is nil.
 func Wrap(err error) error {
 	return (*Class).create(nil, 3, err)
 }
@@ -72,7 +72,7 @@ func (c *Class) New(format string, args ...interface{}) error {
 }
 
 // Wrap returns a new error based on the passed in error that is contained in
-// this class.
+// this class. Wrap returns nil if err is nil.
 func (c *Class) Wrap(err error) error {
 	return c.create(3, err)
 }
