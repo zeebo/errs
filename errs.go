@@ -7,6 +7,15 @@ import (
 	"runtime"
 )
 
+// Namer is implemented by all errors returned in this package. It returns a
+// name for the class of error it is, and a boolean indicating if the name is
+// valid.
+type Namer interface{ Name() (string, bool) }
+
+// Causer is implemented by all errors returned in this package. It returns
+// the underlying cause of the error, or nil if there is no underlying cause.
+type Causer interface{ Cause() error }
+
 // New returns an error not contained in any class. This is the same as calling
 // fmt.Errorf(...) except it captures a stack trace on creation.
 func New(format string, args ...interface{}) error {
@@ -19,22 +28,23 @@ func Wrap(err error) error {
 	return (*Class).create(nil, 3, err)
 }
 
-// Unwrap returns the underlying error, if any, or just the error. It returns
-// nil if any error claims it was caused by nil.
+// Unwrap returns the underlying error, if any, or just the error.
 func Unwrap(err error) error {
-	// causer is an interface that the ecosystem has decided on to get at error
-	// causes.
-	type causer interface {
-		Cause() error
-	}
-
-	// we call Cause as much as possible.
-	for err != nil {
-		causer, ok := err.(causer)
+	// we call Cause as much as possible. Since comparing arbitrary interfaces
+	// with equality isn't panic safe, we only loop up to 100 times to ensure
+	// that a poor implementation that loops does not cause a hang.
+	for i := 0; err != nil && i < 100; i++ {
+		causer, ok := err.(Causer)
 		if !ok {
 			break
 		}
-		err = causer.Cause()
+
+		// if the cause of some error is nil, we return it.
+		nerr := causer.Cause()
+		if nerr == nil {
+			return err
+		}
+		err = nerr
 	}
 
 	return err
@@ -43,7 +53,7 @@ func Unwrap(err error) error {
 // Classes returns all the classes that have wrapped the error.
 func Classes(err error) []*Class {
 	if err, ok := err.(*errorT); ok && err != nil {
-		return err.classes
+		return append([]*Class(nil), err.classes...)
 	}
 	return nil
 }
@@ -59,8 +69,11 @@ type Class string
 // Has returns true if the passed in error was wrapped by this class.
 func (c *Class) Has(err error) bool {
 	if err, ok := err.(*errorT); ok {
-		_, ok := err.class_set[c]
-		return ok
+		for _, k := range err.classes {
+			if k == c {
+				return true
+			}
+		}
 	}
 	return false
 }
@@ -85,11 +98,8 @@ func (c *Class) create(depth int, err error) error {
 	}
 
 	if err, ok := err.(*errorT); ok {
-		if c != nil {
-			if _, ok := err.class_set[c]; !ok {
-				err.classes = append(err.classes, c)
-				err.class_set[c] = struct{}{}
-			}
+		if c != nil && err.outerClass() != c {
+			err.classes = append(err.classes, c)
 		}
 		return err
 	}
@@ -98,17 +108,14 @@ func (c *Class) create(depth int, err error) error {
 	n := runtime.Callers(depth, pcs[:])
 
 	var classes []*Class
-	var class_set = make(map[*Class]struct{})
 	if c != nil {
-		classes = append(classes, c)
-		class_set[c] = struct{}{}
+		classes = []*Class{c}
 	}
 
 	return &errorT{
-		classes:   classes,
-		class_set: class_set,
-		err:       err,
-		pcs:       pcs[:n:n],
+		classes: classes,
+		err:     err,
+		pcs:     pcs[:n:n],
 	}
 }
 
@@ -118,10 +125,23 @@ func (c *Class) create(depth int, err error) error {
 
 // errorT is the type of errors returned from this package.
 type errorT struct {
-	classes   []*Class
-	class_set map[*Class]struct{}
-	pcs       []uintptr
-	err       error
+	classes []*Class
+	pcs     []uintptr
+	err     error
+}
+
+var ( // ensure *errorT implements the helper interfaces.
+	_ Namer  = (*errorT)(nil)
+	_ Causer = (*errorT)(nil)
+	_ error  = (*errorT)(nil)
+)
+
+// outerClass returns the outermost wrapping class of the error.
+func (e *errorT) outerClass() *Class {
+	if len(e.classes) == 0 {
+		return nil
+	}
+	return e.classes[len(e.classes)-1]
 }
 
 // errorT implements the error interface.
@@ -153,10 +173,11 @@ func (e *errorT) Cause() error {
 
 // Name returns the name for the error, which is the first wrapping class.
 func (e *errorT) Name() (string, bool) {
-	if len(e.classes) == 0 {
+	outer := e.outerClass()
+	if outer == nil {
 		return "", false
 	}
-	return string(*e.classes[0]), true
+	return string(*outer), true
 }
 
 // summarizeStack writes stack line entries to the writer.

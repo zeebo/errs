@@ -26,7 +26,7 @@ the noise of printing a stack trace in every situation. For example:
 func doSomeRealWork() {
 	err := checkThing()
 	if err != nil {
-		fmt.Printf("%+v\n", err) // contains stack trace if it's an *errs.Error
+		fmt.Printf("%+v\n", err) // contains stack trace if it's a errs error.
 		fmt.Printf("%v\n", err)  // does not contain a stack trace
 		return
 	}
@@ -94,6 +94,20 @@ func deep() {
 In the above example, both `Error.Has(deep1())` and `Unauthorized.Has(deep1())`
 would return `true`, and the stack trace would only be recorded once at the
 `deep2` call.
+
+In addition, when an error has been [Wrap][Wrap]ped, [Wrap][Wrap]ping it again
+with the same [Class][Class] will not do anything. For example:
+
+```go
+func doubleWrap() {
+	fmt.Println(Error.Wrap(error.New("foo")))
+
+	// output:
+	// mypackage: foo
+}
+```
+
+This is to make it an easier decision if you should [Wrap][Wrap] or not.
 
 ### Utilities
 

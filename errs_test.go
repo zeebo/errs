@@ -12,6 +12,7 @@ func (c causeError) Cause() error { return c.error }
 
 func TestErrs(t *testing.T) {
 	assert := func(t *testing.T, v bool, err ...interface{}) {
+		t.Helper()
 		if !v {
 			t.Fatal(err...)
 		}
@@ -92,6 +93,11 @@ func TestErrs(t *testing.T) {
 			assert(t, err == Unwrap(foo.Wrap(err)))
 			assert(t, err == Unwrap(bar.Wrap(foo.Wrap(err))))
 			assert(t, err == Unwrap(causeError{error: err}))
+
+			// ensure a trivial cycle eventually completes
+			loop := new(causeError)
+			loop.error = loop
+			assert(t, loop == Unwrap(loop))
 		})
 
 		t.Run("Cause", func(t *testing.T) {
@@ -111,13 +117,18 @@ func TestErrs(t *testing.T) {
 			assert(t, len(classes) == 1)
 			assert(t, classes[0] == &foo)
 
+			err = foo.Wrap(err)
+			classes = Classes(err)
+			assert(t, len(classes) == 1)
+			assert(t, classes[0] == &foo)
+
 			err = bar.Wrap(err)
 			classes = Classes(err)
 			assert(t, len(classes) == 2)
 			assert(t, classes[0] == &foo)
 			assert(t, classes[1] == &bar)
 
-			err = bar.Wrap(foo.Wrap(err))
+			err = bar.Wrap(err)
 			classes = Classes(err)
 			assert(t, len(classes) == 2)
 			assert(t, classes[0] == &foo)
@@ -125,17 +136,17 @@ func TestErrs(t *testing.T) {
 		})
 
 		t.Run("Name", func(t *testing.T) {
-			name, ok := New("t").(*errorT).Name()
+			name, ok := New("t").(Namer).Name()
 			assert(t, !ok)
 			assert(t, name == "")
 
-			name, ok = foo.New("t").(*errorT).Name()
+			name, ok = foo.New("t").(Namer).Name()
 			assert(t, ok)
 			assert(t, name == "foo")
 
-			name, ok = bar.Wrap(foo.New("t")).(*errorT).Name()
+			name, ok = bar.Wrap(foo.New("t")).(Namer).Name()
 			assert(t, ok)
-			assert(t, name == "foo")
+			assert(t, name == "bar")
 		})
 
 		t.Run("Empty String", func(t *testing.T) {
