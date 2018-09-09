@@ -152,13 +152,23 @@ func (e *errorT) Error() string {
 // Format handles the formatting of the error. Using a "+" on the format string
 // specifier will also write the stack trace.
 func (e *errorT) Format(f fmt.State, c rune) {
+	var printSeparator bool
 	for i := len(e.classes) - 1; i >= 0; i-- {
 		name := string(*e.classes[i])
 		if len(name) > 0 {
-			fmt.Fprintf(f, "%s: ", name)
+			if printSeparator {
+				fmt.Fprint(f, ": ")
+			}
+			printSeparator = true
+			fmt.Fprint(f, name)
 		}
 	}
-	fmt.Fprintf(f, "%v", e.err)
+	if len(e.err.Error()) > 0 {
+		if printSeparator {
+			fmt.Fprint(f, ": ")
+		}
+		fmt.Fprintf(f, "%v", e.err)
+	}
 
 	if f.Flag(int('+')) {
 		summarizeStack(f, e.pcs)
