@@ -153,5 +153,10 @@ func TestErrs(t *testing.T) {
 			assert(t, empty.New("test").Error() == "test")
 			assert(t, foo.Wrap(empty.New("test")).Error() == "foo: test")
 		})
+
+		t.Run("Empty Format", func(t *testing.T) {
+			assert(t, empty.New("").Error() == "")
+			assert(t, foo.New("").Error() == "foo")
+		})
 	})
 }
