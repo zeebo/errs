@@ -163,11 +163,11 @@ func (e *errorT) Format(f fmt.State, c rune) {
 			fmt.Fprint(f, name)
 		}
 	}
-	if len(e.err.Error()) > 0 {
+	if text := e.err.Error(); len(text) > 0 {
 		if printSeparator {
 			fmt.Fprint(f, ": ")
 		}
-		fmt.Fprintf(f, "%v", e.err)
+		fmt.Fprintf(f, "%v", text)
 	}
 
 	if f.Flag(int('+')) {
