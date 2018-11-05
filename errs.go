@@ -191,6 +191,13 @@ func (e *errorT) Cause() error {
 	return e.err
 }
 
+// Unwrap implements the draft design for error inspection. Since this is
+// on an unexported type, it should not be hard to maintain going forward
+// given that it also is the exact same semantics as Cause.
+func (e *errorT) Unwrap() error {
+	return e.err
+}
+
 // Name returns the name for the error, which is the first wrapping class.
 func (e *errorT) Name() (string, bool) {
 	outer := e.outerClass()

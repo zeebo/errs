@@ -166,8 +166,17 @@ func BenchmarkErrs(b *testing.B) {
 	foo := Class("foo")
 	err := errors.New("bench")
 
-	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
-		_ = foo.Wrap(err)
-	}
+	b.Run("Wrap", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_ = foo.Wrap(err)
+		}
+	})
+
+	b.Run("New", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_ = foo.New("bench")
+		}
+	})
 }
