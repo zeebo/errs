@@ -104,19 +104,26 @@ func (c *Class) create(depth int, err error) error {
 		return err
 	}
 
-	var pcs [256]uintptr
-	n := runtime.Callers(depth, pcs[:])
+	errt := new(errorT)
+	errt.err = err
 
-	var classes []*Class
+	// see if it fits in our relatively small pcbuf
+	n := runtime.Callers(depth, errt.pcbuf[:])
+	if n < len(errt.pcbuf) {
+		errt.pcs = errt.pcbuf[:n:n]
+	} else { // otherwise, use a bigger buffer
+		var pcbuf [64]uintptr
+		n = runtime.Callers(depth, pcbuf[:])
+		errt.pcs = pcbuf[:n:n]
+	}
+
+	// use the clsbuf as the backing store
+	errt.classes = errt.clsbuf[:0]
 	if c != nil {
-		classes = []*Class{c}
+		errt.classes = append(errt.classes, c)
 	}
 
-	return &errorT{
-		classes: classes,
-		err:     err,
-		pcs:     pcs[:n:n],
-	}
+	return errt
 }
 
 //
@@ -125,6 +132,9 @@ func (c *Class) create(depth int, err error) error {
 
 // errorT is the type of errors returned from this package.
 type errorT struct {
+	pcbuf  [16]uintptr // backing store for pcs to reduce allocs
+	clsbuf [4]*Class   // backing store for classes to reduce allocs
+
 	classes []*Class
 	pcs     []uintptr
 	err     error

@@ -1,6 +1,7 @@
 package errs
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -159,4 +160,14 @@ func TestErrs(t *testing.T) {
 			assert(t, foo.New("").Error() == "foo")
 		})
 	})
+}
+
+func BenchmarkErrs(b *testing.B) {
+	foo := Class("foo")
+	err := errors.New("bench")
+
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_ = foo.Wrap(err)
+	}
 }
