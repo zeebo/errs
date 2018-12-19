@@ -36,8 +36,7 @@ func doSomeRealWork() {
 ### Error Classes
 
 You can create a [Class][Class] of errors and check if any error was created by
-that [Class][Class]. The [Class][Class] name is prefixed to all of the errors
-it creates. For example:
+that class. The class name is prefixed to all of the errors it creates. For example:
 
 ```go
 var Unauthorized = errs.Class("unauthorized")
@@ -62,8 +61,8 @@ func handleRequest() {
 }
 ```
 
-[Class][Class]es can also [Wrap][Wrap] other errors, and errors may be
-[Wrap][Wrap]ped multiple times. For example:
+Classes can also [Wrap][ClassWrap] other errors, and errors may be wrapped 
+multiple times. For example:
 
 ```go
 var (
@@ -95,24 +94,24 @@ In the above example, both `Error.Has(deep1())` and `Unauthorized.Has(deep1())`
 would return `true`, and the stack trace would only be recorded once at the
 `deep2` call.
 
-In addition, when an error has been [Wrap][Wrap]ped, [Wrap][Wrap]ping it again
-with the same [Class][Class] will not do anything. For example:
+In addition, when an error has been wrapped, wrapping it again with the same class will
+not do anything. For example:
 
 ```go
 func doubleWrap() {
-	fmt.Println(Error.Wrap(error.New("foo")))
+	fmt.Println(Error.Wrap(Error.New("foo")))
 
 	// output:
 	// mypackage: foo
 }
 ```
 
-This is to make it an easier decision if you should [Wrap][Wrap] or not.
+This is to make it an easier decision if you should wrap or not (you should).
 
 ### Utilities
 
-[Classes][Classes] is a helper function to get a slice of [Class][Class]es
-that an error has. The latest wrap is first in the slice. For example:
+[Classes][Classes] is a helper function to get a slice of classes that an error
+has. The latest wrap is first in the slice. For example:
 
 ```go
 func getClasses() {
@@ -127,11 +126,11 @@ func getClasses() {
 ```
 
 Finally, a helper function, [Unwrap][Unwrap] is provided to get the
-[Wrap][Wrap]ped error in cases where you might want to inspect details. For
+wrapped error in cases where you might want to inspect details. For
 example:
 
 ```go
-var Error = Class("mypackage")
+var Error = errs.Class("mypackage")
 
 func getHandle() (*os.File, error) {
 	fh, err := os.Open("neat_things")
@@ -153,9 +152,12 @@ func checkForNeatThings() {
 }
 ```
 
+It knows about both the `Cause() error` and `Unwrap() error` methods that are
+often used in the community, and will call them as many times as possible.
+
 ### Groups
 
-[Group][Group]s allow one to collect a set of errors. For example:
+[Groups][Group] allow one to collect a set of errors. For example:
 
 ```go
 func tonsOfErrors() error {
@@ -169,8 +171,8 @@ func tonsOfErrors() error {
 
 Some things to note:
 
-- The [Add][Add] method only adds to the group if the passed in error is non-nil.
-- The [Err][Err] method returns an error only if non-nil errors have been added, and
+- The [Add][GroupAdd] method only adds to the group if the passed in error is non-nil.
+- The [Err][GroupErr] method returns an error only if non-nil errors have been added, and
   additionally returns just the error if only one error was added. Thus, we always
   have that if you only call `group.Add(err)`, then `group.Err() == err`.
 
@@ -179,7 +181,6 @@ The returned error will format itself similarly:
 ```go
 func groupFormat() {
 	var group errs.Group
-
 	group.Add(errs.New("first"))
 	group.Add(errs.New("second"))
 	err := group.Err()
@@ -204,12 +205,13 @@ func groupFormat() {
 errs is released under an MIT License. If you want to contribute, be sure to
 add yourself to the list in AUTHORS.
 
-
 [New]: https://godoc.org/github.com/zeebo/errs#New
+[Wrap]: https://godoc.org/github.com/zeebo/errs#Wrap
 [Class]: https://godoc.org/github.com/zeebo/errs#Class
-[Wrap]: https://godoc.org/github.com/zeebo/errs#Class.Wrap
+[ClassNew]: https://godoc.org/github.com/zeebo/errs#Class.New
+[ClassWrap]: https://godoc.org/github.com/zeebo/errs#Class.Wrap
 [Unwrap]: https://godoc.org/github.com/zeebo/errs#Unwrap
 [Classes]: https://godoc.org/github.com/zeebo/errs#Classes
 [Group]: https://godoc.org/github.com/zeebo/errs#Group
-[Add]: https://godoc.org/github.com/zeebo/errs#Group.Add
-[Err]: https://godoc.org/github.com/zeebo/errs#Group.Err
+[GroupAdd]: https://godoc.org/github.com/zeebo/errs#Group.Add
+[GroupErr]: https://godoc.org/github.com/zeebo/errs#Group.Err
