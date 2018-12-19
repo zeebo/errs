@@ -112,13 +112,13 @@ This is to make it an easier decision if you should [Wrap][Wrap] or not.
 ### Utilities
 
 [Classes][Classes] is a helper function to get a slice of [Class][Class]es
-that an error has. The earliest wrap is first in the slice. For example:
+that an error has. The latest wrap is first in the slice. For example:
 
 ```go
 func getClasses() {
 	classes := errs.Classes(deep1())
-	fmt.Println(classes[0] == &Unauthorized)
-	fmt.Println(classes[1] == &Error)
+	fmt.Println(classes[0] == &Error)
+	fmt.Println(classes[1] == &Unauthorized)
 
 	// output:
 	// true
@@ -153,6 +153,52 @@ func checkForNeatThings() {
 }
 ```
 
+### Groups
+
+[Group][Group]s allow one to collect a set of errors. For example:
+
+```go
+func tonsOfErrors() error {
+	var group errs.Group
+	for _, work := range someWork {
+		group.Add(maybeErrors(work))
+	}
+	return group.Err()
+}
+```
+
+Some things to note:
+
+- The [Add][Add] method only adds to the group if the passed in error is non-nil.
+- The [Err][Err] method returns an error only if non-nil errors have been added, and
+  additionally returns just the error if only one error was added. Thus, we always
+  have that if you only call `group.Add(err)`, then `group.Err() == err`.
+
+The returned error will format itself similarly:
+
+```go
+func groupFormat() {
+	var group errs.Group
+
+	group.Add(errs.New("first"))
+	group.Add(errs.New("second"))
+	err := group.Err()
+
+	fmt.Printf("%v\n", err)
+	fmt.Println()
+	fmt.Printf("%+v\n", err)
+
+	// output:
+	// first; second
+	//
+	// group:
+	// --- first
+	//     ... stack trace
+	// --- second
+	//     ... stack trace
+}
+```
+
 ### Contributing
 
 errs is released under an MIT License. If you want to contribute, be sure to
@@ -164,3 +210,6 @@ add yourself to the list in AUTHORS.
 [Wrap]: https://godoc.org/github.com/zeebo/errs#Class.Wrap
 [Unwrap]: https://godoc.org/github.com/zeebo/errs#Unwrap
 [Classes]: https://godoc.org/github.com/zeebo/errs#Classes
+[Group]: https://godoc.org/github.com/zeebo/errs#Group
+[Add]: https://godoc.org/github.com/zeebo/errs#Group.Add
+[Err]: https://godoc.org/github.com/zeebo/errs#Group.Err
