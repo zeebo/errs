@@ -16,6 +16,10 @@ type Namer interface{ Name() (string, bool) }
 // the underlying cause of the error, or nil if there is no underlying cause.
 type Causer interface{ Cause() error }
 
+// unwrapper is implemented by all errors returned in this package. It returns
+// the underlying cause of the error, or nil if there is no underlying error.
+type unwrapper interface{ Unwrap() error }
+
 // New returns an error not contained in any class. This is the same as calling
 // fmt.Errorf(...) except it captures a stack trace on creation.
 func New(format string, args ...interface{}) error {
@@ -37,13 +41,16 @@ const maxCause = 100
 // Unwrap returns the underlying error, if any, or just the error.
 func Unwrap(err error) error {
 	for i := 0; err != nil && i < maxCause; i++ {
-		causer, ok := err.(Causer)
-		if !ok {
-			break
+		var nerr error
+
+		switch e := err.(type) {
+		case Causer:
+			nerr = e.Cause()
+
+		case unwrapper:
+			nerr = e.Unwrap()
 		}
 
-		// if the cause of some error is nil, we return it.
-		nerr := causer.Cause()
 		if nerr == nil {
 			return err
 		}
@@ -63,17 +70,22 @@ func Classes(err error) (classes []*Class) {
 				classes = append(classes, e.class)
 			}
 			err = e.err
+			continue
 
 		case Causer:
-			if causes >= maxCause {
-				return classes
-			}
-			causes++
 			err = e.Cause()
+
+		case unwrapper:
+			err = e.Unwrap()
 
 		default:
 			return classes
 		}
+
+		if causes >= maxCause {
+			return classes
+		}
+		causes++
 	}
 }
 
