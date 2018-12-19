@@ -1,5 +1,10 @@
 package errs
 
+import (
+	"fmt"
+	"io"
+)
+
 // Group is a list of errors.
 type Group []error
 
@@ -64,15 +69,27 @@ func (group combinedError) Unwrap() error {
 	return group.Cause()
 }
 
-// Error returns error string delimited by line-endings
-func (group combinedError) Error() string {
-	if len(group) == 0 {
-		return "empty"
+// Error returns error string delimited by semicolons.
+func (group combinedError) Error() string { return fmt.Sprintf("%v", group) }
+
+// Format handles the formatting of the error. Using a "+" on the format
+// string specifier will cause the errors to be formatted with "+" and
+// delimited by newlines. They are delimited by semicolons otherwise.
+func (group combinedError) Format(f fmt.State, c rune) {
+	delim := "; "
+	if f.Flag(int('+')) {
+		io.WriteString(f, "group:\n--- ")
+		delim = "\n--- "
 	}
 
-	allErrors := group[0].Error()
-	for _, err := range group[1:] {
-		allErrors += "; " + err.Error()
+	for i, err := range group {
+		if i != 0 {
+			io.WriteString(f, delim)
+		}
+		if formatter, ok := err.(fmt.Formatter); ok {
+			formatter.Format(f, c)
+		} else {
+			fmt.Fprintf(f, "%v", err)
+		}
 	}
-	return allErrors
 }

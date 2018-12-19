@@ -1,13 +1,14 @@
 package errs
 
 import (
-	"errors"
+	"fmt"
+	"strings"
 	"testing"
 )
 
 func TestGroup(t *testing.T) {
-	var alpha = errors.New("alpha")
-	var beta = errors.New("beta")
+	alpha := New("alpha")
+	beta := New("beta")
 
 	var group Group
 	group.Add(nil, nil, nil)
@@ -23,10 +24,19 @@ func TestGroup(t *testing.T) {
 
 	group.Add(nil, beta)
 	if group.Err().Error() != "alpha; beta" {
-		t.Fatal("expected alpha; beta")
+		t.Fatal("expected \"group: alpha; beta\"")
+	}
+	if fmt.Sprintf("%v", group.Err()) != "alpha; beta" {
+		t.Fatal("expected \"group: alpha; beta\"")
+	}
+	if strings.Count(fmt.Sprintf("%+v", group.Err()), "\n") <= 1 {
+		t.Fatal("expected multiple lines with +v")
 	}
 
-	if Unwrap(group.Err()) != alpha {
+	t.Logf("%%v:\n%v", group.Err())
+	t.Logf("%%+v:\n%+v", group.Err())
+
+	if Unwrap(group.Err()) != Unwrap(alpha) {
 		t.Fatal("expected alpha")
 	}
 }
