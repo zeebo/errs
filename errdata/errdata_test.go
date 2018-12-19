@@ -8,6 +8,7 @@ import (
 
 func TestErrdata(t *testing.T) {
 	assert := func(t *testing.T, v bool, err ...interface{}) {
+		t.Helper()
 		if !v {
 			t.Fatal(err...)
 		}
