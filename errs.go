@@ -28,12 +28,15 @@ func Wrap(err error) error {
 	return (*Class).create(nil, 3, err)
 }
 
+// Often, we call Cause as much as possible. Since comparing arbitrary
+// interfaces with equality isn't panic safe, we only loop up to 100
+// times to ensure that a poor implementation that causes a cycle does
+// not run forever.
+const maxCause = 100
+
 // Unwrap returns the underlying error, if any, or just the error.
 func Unwrap(err error) error {
-	// we call Cause as much as possible. Since comparing arbitrary interfaces
-	// with equality isn't panic safe, we only loop up to 100 times to ensure
-	// that a poor implementation that loops does not cause a hang.
-	for i := 0; err != nil && i < 100; i++ {
+	for i := 0; err != nil && i < maxCause; i++ {
 		causer, ok := err.(Causer)
 		if !ok {
 			break
@@ -51,11 +54,27 @@ func Unwrap(err error) error {
 }
 
 // Classes returns all the classes that have wrapped the error.
-func Classes(err error) []*Class {
-	if err, ok := err.(*errorT); ok && err != nil {
-		return append([]*Class(nil), err.classes...)
+func Classes(err error) (classes []*Class) {
+	causes := 0
+	for {
+		switch e := err.(type) {
+		case *errorT:
+			if e.class != nil {
+				classes = append(classes, e.class)
+			}
+			err = e.err
+
+		case Causer:
+			if causes >= maxCause {
+				return classes
+			}
+			causes++
+			err = e.Cause()
+
+		default:
+			return classes
+		}
 	}
-	return nil
 }
 
 //
@@ -68,14 +87,16 @@ type Class string
 
 // Has returns true if the passed in error was wrapped by this class.
 func (c *Class) Has(err error) bool {
-	if err, ok := err.(*errorT); ok {
-		for _, k := range err.classes {
-			if k == c {
-				return true
-			}
+	for {
+		errt, ok := err.(*errorT)
+		if !ok {
+			return false
 		}
+		if errt.class == c {
+			return true
+		}
+		err = errt.err
 	}
-	return false
 }
 
 // New constructs an error with the format string that will be contained by
@@ -97,30 +118,24 @@ func (c *Class) create(depth int, err error) error {
 		return nil
 	}
 
+	var pcs []uintptr
 	if err, ok := err.(*errorT); ok {
-		if c != nil && err.outerClass() != c {
-			err.classes = append(err.classes, c)
+		if c == nil || err.class == c {
+			return err
 		}
-		return err
+		pcs = err.pcs
 	}
 
-	errt := new(errorT)
-	errt.err = err
-
-	// see if it fits in our relatively small pcbuf
-	n := runtime.Callers(depth, errt.pcbuf[:])
-	if n < len(errt.pcbuf) {
-		errt.pcs = errt.pcbuf[:n:n]
-	} else { // otherwise, use a bigger buffer
-		var pcbuf [64]uintptr
-		n = runtime.Callers(depth, pcbuf[:])
-		errt.pcs = pcbuf[:n:n]
+	errt := &errorT{
+		class: c,
+		err:   err,
+		pcs:   pcs,
 	}
 
-	// use the clsbuf as the backing store
-	errt.classes = errt.clsbuf[:0]
-	if c != nil {
-		errt.classes = append(errt.classes, c)
+	if errt.pcs == nil {
+		errt.pcs = make([]uintptr, 64)
+		n := runtime.Callers(depth, errt.pcs)
+		errt.pcs = errt.pcs[:n:n]
 	}
 
 	return errt
@@ -132,12 +147,9 @@ func (c *Class) create(depth int, err error) error {
 
 // errorT is the type of errors returned from this package.
 type errorT struct {
-	pcbuf  [16]uintptr // backing store for pcs to reduce allocs
-	clsbuf [4]*Class   // backing store for classes to reduce allocs
-
-	classes []*Class
-	pcs     []uintptr
-	err     error
+	class *Class
+	err   error
+	pcs   []uintptr
 }
 
 var ( // ensure *errorT implements the helper interfaces.
@@ -145,14 +157,6 @@ var ( // ensure *errorT implements the helper interfaces.
 	_ Causer = (*errorT)(nil)
 	_ error  = (*errorT)(nil)
 )
-
-// outerClass returns the outermost wrapping class of the error.
-func (e *errorT) outerClass() *Class {
-	if len(e.classes) == 0 {
-		return nil
-	}
-	return e.classes[len(e.classes)-1]
-}
 
 // errorT implements the error interface.
 func (e *errorT) Error() string {
@@ -162,24 +166,14 @@ func (e *errorT) Error() string {
 // Format handles the formatting of the error. Using a "+" on the format string
 // specifier will also write the stack trace.
 func (e *errorT) Format(f fmt.State, c rune) {
-	var printSeparator bool
-	for i := len(e.classes) - 1; i >= 0; i-- {
-		name := string(*e.classes[i])
-		if len(name) > 0 {
-			if printSeparator {
-				fmt.Fprint(f, ": ")
-			}
-			printSeparator = true
-			fmt.Fprint(f, name)
-		}
+	sep := ""
+	if e.class != nil && *e.class != "" {
+		fmt.Fprintf(f, "%s", string(*e.class))
+		sep = ": "
 	}
 	if text := e.err.Error(); len(text) > 0 {
-		if printSeparator {
-			fmt.Fprint(f, ": ")
-		}
-		fmt.Fprintf(f, "%v", text)
+		fmt.Fprintf(f, "%s%v", sep, text)
 	}
-
 	if f.Flag(int('+')) {
 		summarizeStack(f, e.pcs)
 	}
@@ -200,11 +194,10 @@ func (e *errorT) Unwrap() error {
 
 // Name returns the name for the error, which is the first wrapping class.
 func (e *errorT) Name() (string, bool) {
-	outer := e.outerClass()
-	if outer == nil {
+	if e.class == nil {
 		return "", false
 	}
-	return string(*outer), true
+	return string(*e.class), true
 }
 
 // summarizeStack writes stack line entries to the writer.

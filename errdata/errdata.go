@@ -34,9 +34,7 @@ func Set(class *errs.Class, key interface{}, value interface{}) {
 // Get returns the value associated to the key for the error if any of the
 // classes the error is part of have a value associated for that key.
 func Get(err error, key interface{}) interface{} {
-	classes := errs.Classes(err)
-	for i := len(classes) - 1; i >= 0; i-- {
-		class := classes[i]
+	for _, class := range errs.Classes(err) {
 		value, ok := registry.Load(makeKey(class, key))
 		if ok {
 			return value

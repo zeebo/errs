@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -105,7 +106,7 @@ func TestErrs(t *testing.T) {
 			err := fmt.Errorf("t")
 
 			assert(t, err == foo.Wrap(err).(*errorT).Cause())
-			assert(t, err == bar.Wrap(foo.Wrap(err)).(*errorT).Cause())
+			assert(t, err == bar.Wrap(foo.Wrap(err)).(*errorT).Cause().(*errorT).Cause())
 		})
 
 		t.Run("Classes", func(t *testing.T) {
@@ -126,14 +127,14 @@ func TestErrs(t *testing.T) {
 			err = bar.Wrap(err)
 			classes = Classes(err)
 			assert(t, len(classes) == 2)
-			assert(t, classes[0] == &foo)
-			assert(t, classes[1] == &bar)
+			assert(t, classes[0] == &bar)
+			assert(t, classes[1] == &foo)
 
 			err = bar.Wrap(err)
 			classes = Classes(err)
 			assert(t, len(classes) == 2)
-			assert(t, classes[0] == &foo)
-			assert(t, classes[1] == &bar)
+			assert(t, classes[0] == &bar)
+			assert(t, classes[1] == &foo)
 		})
 
 		t.Run("Name", func(t *testing.T) {
@@ -158,6 +159,26 @@ func TestErrs(t *testing.T) {
 		t.Run("Empty Format", func(t *testing.T) {
 			assert(t, empty.New("").Error() == "")
 			assert(t, foo.New("").Error() == "foo")
+		})
+
+		t.Run("Immutable", func(t *testing.T) {
+			err := New("")
+			errfoo := foo.Wrap(err)
+			errbar := bar.Wrap(err)
+
+			assert(t, err.Error() == "")
+			assert(t, errfoo.Error() == "foo")
+			assert(t, errbar.Error() == "bar")
+		})
+
+		t.Run("Race", func(t *testing.T) {
+			err := New("race")
+
+			var wg sync.WaitGroup
+			wg.Add(2)
+			go func() { foo.Wrap(err); wg.Done() }()
+			go func() { bar.Wrap(err); wg.Done() }()
+			wg.Wait()
 		})
 	})
 }
