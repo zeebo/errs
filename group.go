@@ -8,7 +8,7 @@ import (
 // Group is a list of errors.
 type Group []error
 
-// Combine combines multiple errors into a single error.
+// Combine combines multiple non-empty errors into a single error.
 func Combine(errs ...error) error {
 	var group Group
 	group.Add(errs...)
