@@ -111,7 +111,12 @@ func IsFunc(err error, is func(err error) bool) bool {
 
 			switch e := err.(type) {
 			case ungrouper:
-				next = append(next, e.Ungroup()...)
+				ungrouped := e.Ungroup()
+				for _, unerr := range ungrouped {
+					if unerr != nil {
+						next = append(next, unerr)
+					}
+				}
 			case Causer:
 				cause := e.Cause()
 				if cause != nil && cause != err {
