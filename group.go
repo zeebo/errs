@@ -69,6 +69,11 @@ func (group combinedError) Unwrap() error {
 	return group.Cause()
 }
 
+// Ungroup returns all errors.
+func (group combinedError) Ungroup() []error {
+	return group
+}
+
 // Error returns error string delimited by semicolons.
 func (group combinedError) Error() string { return fmt.Sprintf("%v", group) }
 

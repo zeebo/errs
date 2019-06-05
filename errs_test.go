@@ -151,6 +151,48 @@ func TestErrs(t *testing.T) {
 			assert(t, classes[1] == &foo)
 		})
 
+		t.Run("IsFunc", func(t *testing.T) {
+			alpha := New("alpha")
+			beta := New("beta")
+			gamma := New("gamma")
+			delta := New("delta")
+			epsilon := New("epsilon")
+
+			assert(t, IsFunc(nil, func(err error) bool {
+				return err == nil
+			}))
+			assert(t, !IsFunc(nil, func(err error) bool {
+				return err == alpha
+			}))
+			assert(t, IsFunc(alpha, func(err error) bool {
+				return err == alpha
+			}))
+			assert(t, !IsFunc(alpha, func(err error) bool {
+				return err == beta
+			}))
+
+			err := Combine(
+				alpha,
+				foo.Wrap(bar.Wrap(baz.Wrap(beta))),
+				bar.Wrap(Combine(gamma, baz.Wrap(delta))),
+			)
+			assert(t, IsFunc(err, func(err error) bool {
+				return err == alpha
+			}))
+			assert(t, IsFunc(err, func(err error) bool {
+				return err == beta
+			}))
+			assert(t, IsFunc(err, func(err error) bool {
+				return err == gamma
+			}))
+			assert(t, IsFunc(err, func(err error) bool {
+				return err == delta
+			}))
+			assert(t, !IsFunc(err, func(err error) bool {
+				return err == epsilon
+			}))
+		})
+
 		t.Run("Name", func(t *testing.T) {
 			name, ok := New("t").(Namer).Name()
 			assert(t, !ok)

@@ -20,6 +20,10 @@ type Causer interface{ Cause() error }
 // the underlying cause of the error, or nil if there is no underlying error.
 type unwrapper interface{ Unwrap() error }
 
+// ungrouper is implemented by combinedError returned in this package. It
+// returns all underlying errors, or nil if there is no underlying error.
+type ungrouper interface{ Ungroup() []error }
+
 // New returns an error not contained in any class. This is the same as calling
 // fmt.Errorf(...) except it captures a stack trace on creation.
 func New(format string, args ...interface{}) error {
@@ -96,6 +100,49 @@ func Classes(err error) (classes []*Class) {
 		}
 		causes++
 	}
+}
+
+// IsFunc checks if any of the underlying errors matches the func
+func IsFunc(err error, is func(err error) bool) bool {
+	causes := 0
+	errs := []error{err}
+
+	for len(errs) > 0 {
+		var next []error
+		for _, err := range errs {
+			if is(err) {
+				return true
+			}
+
+			switch e := err.(type) {
+			case ungrouper:
+				ungrouped := e.Ungroup()
+				for _, unerr := range ungrouped {
+					if unerr != nil {
+						next = append(next, unerr)
+					}
+				}
+			case Causer:
+				cause := e.Cause()
+				if cause != nil {
+					next = append(next, cause)
+				}
+			case unwrapper:
+				unwrapped := e.Unwrap()
+				if unwrapped != nil {
+					next = append(next, unwrapped)
+				}
+			}
+
+			if causes >= maxCause {
+				return false
+			}
+			causes++
+		}
+		errs = next
+	}
+
+	return false
 }
 
 //
