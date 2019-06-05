@@ -115,12 +115,12 @@ func IsFunc(err error, is func(err error) bool) bool {
 				}
 			case Causer:
 				cause := e.Cause()
-				if cause != nil && cause != err {
+				if cause != nil {
 					next = append(next, cause)
 				}
 			case unwrapper:
 				unwrapped := e.Unwrap()
-				if unwrapped != nil && unwrapped != err {
+				if unwrapped != nil {
 					next = append(next, unwrapped)
 				}
 			}
