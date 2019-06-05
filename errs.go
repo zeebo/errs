@@ -124,10 +124,10 @@ func IsFunc(err error, is func(err error) bool) bool {
 				}
 			}
 
-			causes++
 			if causes >= maxCause {
 				return false
 			}
+			causes++
 		}
 		errs = next
 	}
