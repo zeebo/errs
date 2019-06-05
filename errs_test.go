@@ -6,265 +6,185 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/zeebo/assert"
 )
 
-type causeError struct{ error }
-
-func (c causeError) Cause() error { return c.error }
-
 func TestErrs(t *testing.T) {
-	assert := func(t *testing.T, v bool, err ...interface{}) {
-		t.Helper()
-		if !v {
-			t.Fatal(err...)
-		}
-	}
-
-	var (
-		foo   = Class("foo")
-		bar   = Class("bar")
-		baz   = Class("baz")
-		empty = Class("")
+	const (
+		foo   = Tag("foo")
+		bar   = Tag("bar")
+		baz   = Tag("baz")
+		empty = Tag("")
 	)
 
-	t.Run("Class", func(t *testing.T) {
-		t.Run("Has", func(t *testing.T) {
-			assert(t, foo.Has(foo.New("t")))
-			assert(t, !foo.Has(bar.New("t")))
-			assert(t, !foo.Has(baz.New("t")))
+	t.Run("Tag", func(t *testing.T) {
+		t.Run("Is", func(t *testing.T) {
+			assert.That(t, errors.Is(foo.Errorf("t"), foo))
+			assert.That(t, !errors.Is(bar.Errorf("t"), foo))
+			assert.That(t, !errors.Is(baz.Errorf("t"), foo))
 
-			assert(t, !bar.Has(foo.New("t")))
-			assert(t, bar.Has(bar.New("t")))
-			assert(t, !bar.Has(baz.New("t")))
+			assert.That(t, !errors.Is(foo.Errorf("t"), bar))
+			assert.That(t, errors.Is(bar.Errorf("t"), bar))
+			assert.That(t, !errors.Is(baz.Errorf("t"), bar))
 
-			assert(t, foo.Has(bar.Wrap(foo.New("t"))))
-			assert(t, bar.Has(bar.Wrap(foo.New("t"))))
-			assert(t, !baz.Has(bar.Wrap(foo.New("t"))))
+			assert.That(t, errors.Is(bar.Wrap(foo.Errorf("t")), foo))
+			assert.That(t, errors.Is(bar.Wrap(foo.Errorf("t")), bar))
+			assert.That(t, !errors.Is(bar.Wrap(foo.Errorf("t")), baz))
 
-			assert(t, foo.Has(foo.Wrap(bar.New("t"))))
-			assert(t, bar.Has(foo.Wrap(bar.New("t"))))
-			assert(t, !baz.Has(foo.Wrap(bar.New("t"))))
+			assert.That(t, errors.Is(foo.Wrap(bar.Errorf("t")), foo))
+			assert.That(t, errors.Is(foo.Wrap(bar.Errorf("t")), bar))
+			assert.That(t, !errors.Is(foo.Wrap(bar.Errorf("t")), baz))
+
+			alpha := Errorf("alpha")
+			beta := Errorf("beta")
+			gamma := Errorf("gamma")
+			delta := Errorf("delta")
+			epsilon := Errorf("epsilon")
+
+			assert.That(t, errors.Is(nil, nil))
+			assert.That(t, !errors.Is(nil, alpha))
+			assert.That(t, errors.Is(alpha, alpha))
+			assert.That(t, !errors.Is(alpha, beta))
+
+			err := Combine(
+				alpha,
+				foo.Wrap(bar.Wrap(baz.Wrap(beta))),
+				bar.Wrap(Combine(gamma, baz.Wrap(delta))),
+			)
+			assert.That(t, errors.Is(err, alpha))
+			assert.That(t, errors.Is(err, beta))
+			assert.That(t, errors.Is(err, gamma))
+			assert.That(t, errors.Is(err, delta))
+			assert.That(t, !errors.Is(err, epsilon))
 		})
 
 		t.Run("Same Name", func(t *testing.T) {
-			c1 := Class("c")
-			c2 := Class("c")
+			t1 := Tag("c")
+			t2 := Tag("c")
 
-			assert(t, c1.Has(c1.New("t")))
-			assert(t, !c2.Has(c1.New("t")))
+			assert.That(t, errors.Is(t1.Errorf("t"), t1))
+			assert.That(t, errors.Is(t1.Errorf("t"), t2))
 
-			assert(t, !c1.Has(c2.New("t")))
-			assert(t, c2.Has(c2.New("t")))
+			assert.That(t, errors.Is(t2.Errorf("t"), t1))
+			assert.That(t, errors.Is(t2.Errorf("t"), t2))
 		})
 
 		t.Run("Wrap Nil", func(t *testing.T) {
-			assert(t, foo.Wrap(nil) == nil)
-		})
-
-		t.Run("WrapP", func(t *testing.T) {
-			err := func() (err error) {
-				defer foo.WrapP(&err)
-
-				if 1 == 1 {
-					return errors.New("err")
-				}
-				return nil
-			}()
-
-			t.Logf("%+v", err)
-			assert(t, foo.Has(err))
+			assert.That(t, foo.Wrap(nil) == nil)
 		})
 	})
 
 	t.Run("Error", func(t *testing.T) {
 		t.Run("Format Contains Classes", func(t *testing.T) {
-			assert(t, strings.Contains(foo.New("t").Error(), "foo"))
-			assert(t, strings.Contains(bar.New("t").Error(), "bar"))
+			assert.That(t, strings.Contains(foo.Errorf("t").Error(), "foo"))
+			assert.That(t, strings.Contains(bar.Errorf("t").Error(), "bar"))
 
-			assert(t, strings.Contains(bar.Wrap(foo.New("t")).Error(), "foo"))
-			assert(t, strings.Contains(bar.Wrap(foo.New("t")).Error(), "bar"))
+			assert.That(t, strings.Contains(bar.Wrap(foo.Errorf("t")).Error(), "foo"))
+			assert.That(t, strings.Contains(bar.Wrap(foo.Errorf("t")).Error(), "bar"))
 
-			assert(t, strings.Contains(foo.Wrap(bar.New("t")).Error(), "foo"))
-			assert(t, strings.Contains(foo.Wrap(bar.New("t")).Error(), "bar"))
+			assert.That(t, strings.Contains(foo.Wrap(bar.Errorf("t")).Error(), "foo"))
+			assert.That(t, strings.Contains(foo.Wrap(bar.Errorf("t")).Error(), "bar"))
 		})
 
 		t.Run("Format With Stack", func(t *testing.T) {
-			err := foo.New("t")
+			err := foo.Errorf("t")
 
-			assert(t,
-				!strings.Contains(fmt.Sprintf("%v", err), "\n"),
-				"%v format contains newline",
-			)
-			assert(t,
-				strings.Contains(fmt.Sprintf("%+v", err), "\n"),
-				"%+v format does not contain newline",
-			)
+			assert.That(t, !strings.Contains(fmt.Sprintf("%v", err), "\n"))
+			assert.That(t, strings.Contains(fmt.Sprintf("%+v", err), "\n"))
 		})
 
 		t.Run("Unwrap", func(t *testing.T) {
 			err := fmt.Errorf("t")
 
-			assert(t, nil == Unwrap(nil))
-			assert(t, err == Unwrap(err))
-			assert(t, err == Unwrap(foo.Wrap(err)))
-			assert(t, err == Unwrap(bar.Wrap(foo.Wrap(err))))
-			assert(t, err == Unwrap(causeError{error: err}))
-
-			// ensure a trivial cycle eventually completes
-			loop := new(causeError)
-			loop.error = loop
-			assert(t, loop == Unwrap(loop))
+			assert.That(t, nil == errors.Unwrap(nil))
+			assert.That(t, err == errors.Unwrap(foo.Wrap(err)))
+			assert.That(t, err == errors.Unwrap(bar.Wrap(err)))
 		})
 
 		t.Run("Cause", func(t *testing.T) {
 			err := fmt.Errorf("t")
 
-			assert(t, err == foo.Wrap(err).(*errorT).Cause())
-			assert(t, err == bar.Wrap(foo.Wrap(err)).(*errorT).Cause().(*errorT).Cause())
+			assert.That(t, err == foo.Wrap(err).(*errorT).Cause())
+			assert.That(t, err == bar.Wrap(foo.Wrap(err)).(*errorT).Cause().(*errorT).Cause())
 		})
 
-		t.Run("Classes", func(t *testing.T) {
+		t.Run("Tags", func(t *testing.T) {
 			err := fmt.Errorf("t")
-			classes := Classes(err)
-			assert(t, classes == nil)
+			tags := Tags(err)
+			assert.That(t, tags == nil)
 
 			err = foo.Wrap(err)
-			classes = Classes(err)
-			assert(t, len(classes) == 1)
-			assert(t, classes[0] == &foo)
+			tags = Tags(err)
+			assert.That(t, len(tags) == 1)
+			assert.That(t, tags[0] == foo)
 
 			err = foo.Wrap(err)
-			classes = Classes(err)
-			assert(t, len(classes) == 1)
-			assert(t, classes[0] == &foo)
+			tags = Tags(err)
+			assert.That(t, len(tags) == 1)
+			assert.That(t, tags[0] == foo)
 
 			err = bar.Wrap(err)
-			classes = Classes(err)
-			assert(t, len(classes) == 2)
-			assert(t, classes[0] == &bar)
-			assert(t, classes[1] == &foo)
+			tags = Tags(err)
+			assert.That(t, len(tags) == 2)
+			assert.That(t, tags[0] == bar)
+			assert.That(t, tags[1] == foo)
 
 			err = bar.Wrap(err)
-			classes = Classes(err)
-			assert(t, len(classes) == 2)
-			assert(t, classes[0] == &bar)
-			assert(t, classes[1] == &foo)
-		})
-
-		t.Run("Is", func(t *testing.T) {
-			alpha := New("alpha")
-			beta := New("beta")
-			gamma := New("gamma")
-			delta := New("delta")
-			epsilon := New("epsilon")
-
-			assert(t, Is(nil, nil))
-			assert(t, !Is(nil, alpha))
-			assert(t, Is(alpha, alpha))
-			assert(t, !Is(alpha, beta))
-
-			err := Combine(
-				alpha,
-				foo.Wrap(bar.Wrap(baz.Wrap(beta))),
-				bar.Wrap(Combine(gamma, baz.Wrap(delta))),
-			)
-			assert(t, Is(err, alpha))
-			assert(t, Is(err, beta))
-			assert(t, Is(err, gamma))
-			assert(t, Is(err, delta))
-			assert(t, !Is(err, epsilon))
-		})
-
-		t.Run("IsFunc", func(t *testing.T) {
-			alpha := New("alpha")
-			beta := New("beta")
-			gamma := New("gamma")
-			delta := New("delta")
-			epsilon := New("epsilon")
-
-			assert(t, IsFunc(nil, func(err error) bool {
-				return err == nil
-			}))
-			assert(t, !IsFunc(nil, func(err error) bool {
-				return err == alpha
-			}))
-			assert(t, IsFunc(alpha, func(err error) bool {
-				return err == alpha
-			}))
-			assert(t, !IsFunc(alpha, func(err error) bool {
-				return err == beta
-			}))
-
-			err := Combine(
-				alpha,
-				foo.Wrap(bar.Wrap(baz.Wrap(beta))),
-				bar.Wrap(Combine(gamma, baz.Wrap(delta))),
-			)
-			assert(t, IsFunc(err, func(err error) bool {
-				return err == alpha
-			}))
-			assert(t, IsFunc(err, func(err error) bool {
-				return err == beta
-			}))
-			assert(t, IsFunc(err, func(err error) bool {
-				return err == gamma
-			}))
-			assert(t, IsFunc(err, func(err error) bool {
-				return err == delta
-			}))
-			assert(t, !IsFunc(err, func(err error) bool {
-				return err == epsilon
-			}))
+			tags = Tags(err)
+			assert.That(t, len(tags) == 2)
+			assert.That(t, tags[0] == bar)
+			assert.That(t, tags[1] == foo)
 		})
 
 		t.Run("Name", func(t *testing.T) {
-			name, ok := New("t").(Namer).Name()
-			assert(t, !ok)
-			assert(t, name == "")
+			name, ok := Errorf("t").(Namer).Name()
+			assert.That(t, !ok)
+			assert.That(t, name == "")
 
-			name, ok = foo.New("t").(Namer).Name()
-			assert(t, ok)
-			assert(t, name == "foo")
+			name, ok = foo.Errorf("t").(Namer).Name()
+			assert.That(t, ok)
+			assert.That(t, name == "foo")
 
-			name, ok = bar.Wrap(foo.New("t")).(Namer).Name()
-			assert(t, ok)
-			assert(t, name == "bar")
+			name, ok = bar.Wrap(foo.Errorf("t")).(Namer).Name()
+			assert.That(t, ok)
+			assert.That(t, name == "bar")
 		})
 
 		t.Run("Empty String", func(t *testing.T) {
-			assert(t, empty.New("test").Error() == "test")
-			assert(t, foo.Wrap(empty.New("test")).Error() == "foo: test")
+			assert.That(t, empty.Errorf("test").Error() == `test`)
+			assert.That(t, foo.Wrap(empty.Errorf("test")).Error() == `foo: test`)
 		})
 
 		t.Run("Empty Format", func(t *testing.T) {
-			assert(t, empty.New("").Error() == "")
-			assert(t, foo.New("").Error() == "foo")
+			assert.That(t, empty.Errorf("").Error() == "")
+			assert.That(t, foo.Errorf("").Error() == "foo")
 		})
 
 		t.Run("Immutable", func(t *testing.T) {
-			err := New("")
+			err := Errorf("")
 			errfoo := foo.Wrap(err)
 			errbar := bar.Wrap(err)
 
-			assert(t, err.Error() == "")
-			assert(t, errfoo.Error() == "foo")
-			assert(t, errbar.Error() == "bar")
+			assert.That(t, err.Error() == "")
+			assert.That(t, errfoo.Error() == "foo")
+			assert.That(t, errbar.Error() == "bar")
 		})
 
 		t.Run("Race", func(t *testing.T) {
-			err := New("race")
+			err := Errorf("race")
 
 			var wg sync.WaitGroup
 			wg.Add(2)
-			go func() { foo.Wrap(err); wg.Done() }()
-			go func() { bar.Wrap(err); wg.Done() }()
+			go func() { _ = foo.Wrap(err); wg.Done() }()
+			go func() { _ = bar.Wrap(err); wg.Done() }()
 			wg.Wait()
 		})
 	})
 }
 
 func BenchmarkErrs(b *testing.B) {
-	foo := Class("foo")
+	foo := Tag("foo")
 	err := errors.New("bench")
 
 	b.Run("Wrap", func(b *testing.B) {
@@ -274,10 +194,10 @@ func BenchmarkErrs(b *testing.B) {
 		}
 	})
 
-	b.Run("New", func(b *testing.B) {
+	b.Run("Errorf", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			_ = foo.New("bench")
+			_ = foo.Errorf("bench")
 		}
 	})
 }

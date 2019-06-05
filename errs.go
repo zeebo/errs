@@ -2,226 +2,99 @@
 package errs
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"runtime"
 )
 
 // Namer is implemented by all errors returned in this package. It returns a
-// name for the class of error it is, and a boolean indicating if the name is
+// name for the tag of the error, and a boolean indicating if the name is
 // valid.
 type Namer interface{ Name() (string, bool) }
 
-// Causer is implemented by all errors returned in this package. It returns
-// the underlying cause of the error, or nil if there is no underlying cause.
-type Causer interface{ Cause() error }
-
-// unwrapper is implemented by all errors returned in this package. It returns
-// the underlying cause of the error, or nil if there is no underlying error.
-type unwrapper interface{ Unwrap() error }
-
-// ungrouper is implemented by combinedError returned in this package. It
-// returns all underlying errors, or nil if there is no underlying error.
-type ungrouper interface{ Ungroup() []error }
-
-// New returns an error not contained in any class. This is the same as calling
-// fmt.Errorf(...) except it captures a stack trace on creation.
-func New(format string, args ...interface{}) error {
-	return (*Class).create(nil, 3, fmt.Errorf(format, args...))
+// Errorf does the same thing as fmt.Errorf(...) except it captures a stack
+// trace on creation.
+func Errorf(format string, args ...interface{}) error {
+	return Tag("").wrap(fmt.Errorf(format, args...))
 }
 
 // Wrap returns an error not contained in any class. It just associates a stack
 // trace with the error. Wrap returns nil if err is nil.
 func Wrap(err error) error {
-	return (*Class).create(nil, 3, err)
+	return Tag("").wrap(err)
 }
 
-// WrapP stores into the error pointer if it contains a non-nil error an error not
-// contained in any class. It just associates a stack trace with the error. WrapP
-// does nothing if the pointer or pointed at error is nil.
-func WrapP(err *error) {
-	if err != nil && *err != nil {
-		*err = (*Class).create(nil, 3, *err)
-	}
+// Tagged is a shorthand for Tag(tag).Wrap(err).
+func Tagged(tag string, err error) error {
+	return Tag(tag).wrap(err)
 }
 
-// Often, we call Cause as much as possible. Since comparing arbitrary
-// interfaces with equality isn't panic safe, we only loop up to 100
-// times to ensure that a poor implementation that causes a cycle does
-// not run forever.
-const maxCause = 100
-
-// Unwrap returns the underlying error, if any, or just the error.
-func Unwrap(err error) error {
-	for i := 0; err != nil && i < maxCause; i++ {
-		var nerr error
-
-		switch e := err.(type) {
-		case Causer:
-			nerr = e.Cause()
-
-		case unwrapper:
-			nerr = e.Unwrap()
-		}
-
-		if nerr == nil {
-			return err
-		}
-		err = nerr
-	}
-
-	return err
-}
-
-// Classes returns all the classes that have wrapped the error.
-func Classes(err error) (classes []*Class) {
-	causes := 0
+// Tags returns all the tags that have wrapped the error.
+func Tags(err error) (tags []Tag) {
 	for {
-		switch e := err.(type) {
-		case *errorT:
-			if e.class != nil {
-				classes = append(classes, e.class)
-			}
-			err = e.err
-			continue
-
-		case Causer:
-			err = e.Cause()
-
-		case unwrapper:
-			err = e.Unwrap()
-
-		default:
-			return classes
-		}
-
-		if causes >= maxCause {
-			return classes
-		}
-		causes++
-	}
-}
-
-// Is checks if any of the underlying errors matches target
-func Is(err, target error) bool {
-	return IsFunc(err, func(err error) bool {
-		return err == target
-	})
-}
-
-// IsFunc checks if any of the underlying errors matches the func
-func IsFunc(err error, is func(err error) bool) bool {
-	causes := 0
-	errs := []error{err}
-
-	for len(errs) > 0 {
-		var next []error
-		for _, err := range errs {
-			if is(err) {
-				return true
-			}
-
-			switch e := err.(type) {
-			case ungrouper:
-				ungrouped := e.Ungroup()
-				for _, unerr := range ungrouped {
-					if unerr != nil {
-						next = append(next, unerr)
-					}
-				}
-			case Causer:
-				cause := e.Cause()
-				if cause != nil {
-					next = append(next, cause)
-				}
-			case unwrapper:
-				unwrapped := e.Unwrap()
-				if unwrapped != nil {
-					next = append(next, unwrapped)
-				}
-			}
-
-			if causes >= maxCause {
-				return false
-			}
-			causes++
-		}
-		errs = next
-	}
-
-	return false
-}
-
-//
-// error classes
-//
-
-// Class represents a class of errors. You can construct errors, and check if
-// errors are part of the class.
-type Class string
-
-// Has returns true if the passed in error was wrapped by this class.
-func (c *Class) Has(err error) bool {
-	for {
-		errt, ok := err.(*errorT)
+		e, ok := err.(*errorT)
 		if !ok {
-			return false
+			return tags
 		}
-		if errt.class == c {
-			return true
+		if e.tag != "" {
+			tags = append(tags, e.tag)
 		}
-		err = errt.err
+		err = errors.Unwrap(err)
 	}
 }
+
+//
+// error tags
+//
+
+// Tag represents some extra information about an error.
+type Tag string
 
 // New constructs an error with the format string that will be contained by
 // this class. This is the same as calling Wrap(fmt.Errorf(...)).
-func (c *Class) New(format string, args ...interface{}) error {
-	return c.create(3, fmt.Errorf(format, args...))
+func (t Tag) Errorf(format string, args ...interface{}) error {
+	return t.wrap(fmt.Errorf(format, args...))
 }
 
 // Wrap returns a new error based on the passed in error that is contained in
 // this class. Wrap returns nil if err is nil.
-func (c *Class) Wrap(err error) error {
-	return c.create(3, err)
+func (t Tag) Wrap(err error) error {
+	return t.wrap(err)
 }
 
-// WrapP stores into the error pointer if it contains a non-nil error an error contained
-// in this class. WrapP does nothing if the pointer or pointed at error is nil.
-func (c *Class) WrapP(err *error) {
-	if err != nil && *err != nil {
-		*err = c.create(3, *err)
-	}
-}
+// Error returns the class string as the error text. It allows the use of
+// errors.Is, or as just an easy way to have a string constant error.
+func (t Tag) Error() string { return string(t) }
 
 // create constructs the error, or just adds the class to the error, keeping
 // track of the stack if it needs to construct it.
-func (c *Class) create(depth int, err error) error {
+func (t Tag) wrap(err error) error {
 	if err == nil {
 		return nil
 	}
 
 	var pcs []uintptr
 	if err, ok := err.(*errorT); ok {
-		if c == nil || err.class == c {
+		if t == "" || err.tag == t {
 			return err
 		}
 		pcs = err.pcs
 	}
 
-	errt := &errorT{
-		class: c,
-		err:   err,
-		pcs:   pcs,
+	e := &errorT{
+		tag: t,
+		err: err,
+		pcs: pcs,
 	}
 
-	if errt.pcs == nil {
-		errt.pcs = make([]uintptr, 64)
-		n := runtime.Callers(depth, errt.pcs)
-		errt.pcs = errt.pcs[:n:n]
+	if e.pcs == nil {
+		e.pcs = make([]uintptr, 64)
+		n := runtime.Callers(3, e.pcs)
+		e.pcs = e.pcs[:n:n]
 	}
 
-	return errt
+	return e
 }
 
 //
@@ -230,15 +103,14 @@ func (c *Class) create(depth int, err error) error {
 
 // errorT is the type of errors returned from this package.
 type errorT struct {
-	class *Class
-	err   error
-	pcs   []uintptr
+	tag Tag
+	err error
+	pcs []uintptr
 }
 
 var ( // ensure *errorT implements the helper interfaces.
-	_ Namer  = (*errorT)(nil)
-	_ Causer = (*errorT)(nil)
-	_ error  = (*errorT)(nil)
+	_ Namer = (*errorT)(nil)
+	_ error = (*errorT)(nil)
 )
 
 // errorT implements the error interface.
@@ -250,8 +122,8 @@ func (e *errorT) Error() string {
 // specifier will also write the stack trace.
 func (e *errorT) Format(f fmt.State, c rune) {
 	sep := ""
-	if e.class != nil && *e.class != "" {
-		fmt.Fprintf(f, "%s", string(*e.class))
+	if e.tag != "" {
+		fmt.Fprintf(f, "%s", string(e.tag))
 		sep = ": "
 	}
 	if text := e.err.Error(); len(text) > 0 {
@@ -275,12 +147,16 @@ func (e *errorT) Unwrap() error {
 	return e.err
 }
 
-// Name returns the name for the error, which is the first wrapping class.
+// Name returns the name for the error, which is the first wrapping tag.
 func (e *errorT) Name() (string, bool) {
-	if e.class == nil {
-		return "", false
-	}
-	return string(*e.class), true
+	return string(e.tag), e.tag != ""
+}
+
+// Is is for go1.13 errors so that the Is function reports true if the error is
+// part of the class.
+func (e *errorT) Is(target error) bool {
+	tag, ok := target.(Tag)
+	return ok && e.tag == tag
 }
 
 // summarizeStack writes stack line entries to the writer.

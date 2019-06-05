@@ -1,8 +1,8 @@
 # errdata
 
-[![GoDoc](https://godoc.org/github.com/zeebo/errs/errdata?status.svg)](https://godoc.org/github.com/zeebo/errs/errdata)
-[![Sourcegraph](https://sourcegraph.com/github.com/zeebo/errs/-/badge.svg)](https://sourcegraph.com/github.com/zeebo/errs?badge)
-[![Go Report Card](https://goreportcard.com/badge/github.com/zeebo/errs/errdata)](https://goreportcard.com/report/github.com/zeebo/errs/errdata)
+[![GoDoc](https://godoc.org/github.com/zeebo/errs/v2/errdata?status.svg)](https://godoc.org/github.com/zeebo/errs/errdata)
+[![Sourcegraph](https://sourcegraph.com/github.com/zeebo/errs/v2/-/badge.svg)](https://sourcegraph.com/github.com/zeebo/errs?badge)
+[![Go Report Card](https://goreportcard.com/badge/github.com/zeebo/errs/v2/errdata)](https://goreportcard.com/report/github.com/zeebo/errs/errdata)
 
 errdata helps with associating some data to error classes.
 
@@ -56,5 +56,5 @@ func whatStatusCodeCode() {
 errdata is released under an MIT License. If you want to contribute, be sure to
 add yourself to the list in AUTHORS.
 
-[Set]: https://godoc.org/github.com/zeebo/errs/errdata#Set
-[Get]: https://godoc.org/github.com/zeebo/errs/errdata#Get
+[Set]: https://godoc.org/github.com/zeebo/errs/v2/errdata#Set
+[Get]: https://godoc.org/github.com/zeebo/errs/v2/errdata#Get

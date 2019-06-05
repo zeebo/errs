@@ -1,42 +1,28 @@
 package errs
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/zeebo/assert"
 )
 
 func TestGroup(t *testing.T) {
-	alpha := New("alpha")
-	beta := New("beta")
+	alpha := Errorf("alpha")
+	beta := Errorf("beta")
 
 	var group Group
 	group.Add(nil, nil, nil)
-
-	if group.Err() != nil {
-		t.Fatal("expected nil")
-	}
+	assert.NoError(t, group.Err())
 
 	group.Add(alpha)
-	if group.Err() != alpha {
-		t.Fatal("expected alpha")
-	}
+	assert.Equal(t, group.Err(), alpha)
 
 	group.Add(nil, beta)
-	if group.Err().Error() != "alpha; beta" {
-		t.Fatal("expected \"group: alpha; beta\"")
-	}
-	if fmt.Sprintf("%v", group.Err()) != "alpha; beta" {
-		t.Fatal("expected \"group: alpha; beta\"")
-	}
-	if strings.Count(fmt.Sprintf("%+v", group.Err()), "\n") <= 1 {
-		t.Fatal("expected multiple lines with +v")
-	}
-
-	t.Logf("%%v:\n%v", group.Err())
-	t.Logf("%%+v:\n%+v", group.Err())
-
-	if Unwrap(group.Err()) != Unwrap(alpha) {
-		t.Fatal("expected alpha")
-	}
+	assert.Equal(t, group.Err().Error(), "alpha; beta")
+	assert.Equal(t, fmt.Sprintf("%v", group.Err()), "alpha; beta")
+	assert.That(t, strings.Count(fmt.Sprintf("%+v", group.Err()), "\n") > 0)
+	assert.Equal(t, errors.Unwrap(group.Err()), alpha)
 }

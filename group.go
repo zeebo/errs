@@ -1,6 +1,7 @@
 package errs
 
 import (
+	"errors"
 	"fmt"
 	"io"
 )
@@ -35,7 +36,7 @@ func (group Group) Err() error {
 	if len(sanitized) == 1 {
 		return sanitized[0]
 	}
-	return combinedError(sanitized)
+	return groupedErrors(sanitized)
 }
 
 // sanitize returns group that doesn't contain nil-s
@@ -53,43 +54,54 @@ func (group Group) sanitize() Group {
 	return group
 }
 
-// combinedError is a list of non-empty errors
-type combinedError []error
+// groupedErrors is a list of non-empty errors
+type groupedErrors []error
 
 // Cause returns the first error.
-func (group combinedError) Cause() error {
-	if len(group) > 0 {
-		return group[0]
+func (g groupedErrors) Cause() error {
+	if len(g) > 0 {
+		return g[0]
 	}
 	return nil
 }
 
 // Unwrap returns the first error.
-func (group combinedError) Unwrap() error {
-	return group.Cause()
+func (g groupedErrors) Unwrap() error {
+	return g.Cause()
 }
 
 // Ungroup returns all errors.
-func (group combinedError) Ungroup() []error {
-	return group
+func (g groupedErrors) Ungroup() []error {
+	return g
+}
+
+// Is is for go1.13 errors so that the Is function reports true if the error is
+// part of the class.
+func (g groupedErrors) Is(target error) bool {
+	for _, err := range g {
+		if errors.Is(err, target) {
+			return true
+		}
+	}
+	return false
 }
 
 // Error returns error string delimited by semicolons.
-func (group combinedError) Error() string { return fmt.Sprintf("%v", group) }
+func (g groupedErrors) Error() string { return fmt.Sprintf("%v", g) }
 
 // Format handles the formatting of the error. Using a "+" on the format
 // string specifier will cause the errors to be formatted with "+" and
 // delimited by newlines. They are delimited by semicolons otherwise.
-func (group combinedError) Format(f fmt.State, c rune) {
+func (g groupedErrors) Format(f fmt.State, c rune) {
 	delim := "; "
 	if f.Flag(int('+')) {
-		io.WriteString(f, "group:\n--- ")
+		_, _ = io.WriteString(f, "group:\n--- ")
 		delim = "\n--- "
 	}
 
-	for i, err := range group {
+	for i, err := range g {
 		if i != 0 {
-			io.WriteString(f, delim)
+			_, _ = io.WriteString(f, delim)
 		}
 		if formatter, ok := err.(fmt.Formatter); ok {
 			formatter.Format(f, c)
