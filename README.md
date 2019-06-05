@@ -61,7 +61,7 @@ func handleRequest() {
 }
 ```
 
-Classes can also [Wrap][ClassWrap] other errors, and errors may be wrapped 
+Classes can also [Wrap][ClassWrap] other errors, and errors may be wrapped
 multiple times. For example:
 
 ```go
@@ -155,6 +155,23 @@ func checkForNeatThings() {
 It knows about both the `Cause() error` and `Unwrap() error` methods that are
 often used in the community, and will call them as many times as possible.
 
+### Defer
+
+The package also provides [WrapP][WrapP] versions of [Wrap][Wrap] that are useful
+in defer contexts. For example:
+
+```go
+func checkDefer() (err error) {
+	defer Error.WrapP(&err)
+
+	fh, err := os.Open("secret_stash")
+	if err != nil {
+		return nil, err
+	}
+	return fh.Close()
+}
+```
+
 ### Groups
 
 [Groups][Group] allow one to collect a set of errors. For example:
@@ -207,6 +224,7 @@ add yourself to the list in AUTHORS.
 
 [New]: https://godoc.org/github.com/zeebo/errs#New
 [Wrap]: https://godoc.org/github.com/zeebo/errs#Wrap
+[WrapP]: https://godoc.org/github.com/zeebo/errs#WrapP
 [Class]: https://godoc.org/github.com/zeebo/errs#Class
 [ClassNew]: https://godoc.org/github.com/zeebo/errs#Class.New
 [ClassWrap]: https://godoc.org/github.com/zeebo/errs#Class.Wrap

@@ -60,6 +60,20 @@ func TestErrs(t *testing.T) {
 		t.Run("Wrap Nil", func(t *testing.T) {
 			assert(t, foo.Wrap(nil) == nil)
 		})
+
+		t.Run("WrapP", func(t *testing.T) {
+			err := func() (err error) {
+				defer foo.WrapP(&err)
+
+				if 1 == 1 {
+					return errors.New("err")
+				}
+				return nil
+			}()
+
+			t.Logf("%+v", err)
+			assert(t, foo.Has(err))
+		})
 	})
 
 	t.Run("Error", func(t *testing.T) {

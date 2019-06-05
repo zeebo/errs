@@ -32,6 +32,15 @@ func Wrap(err error) error {
 	return (*Class).create(nil, 3, err)
 }
 
+// WrapP stores into the error pointer if it contains a non-nil error an error not
+// contained in any class. It just associates a stack trace with the error. WrapP
+// does nothing if the pointer or pointed at error is nil.
+func WrapP(err *error) {
+	if err != nil && *err != nil {
+		*err = (*Class).create(nil, 3, *err)
+	}
+}
+
 // Often, we call Cause as much as possible. Since comparing arbitrary
 // interfaces with equality isn't panic safe, we only loop up to 100
 // times to ensure that a poor implementation that causes a cycle does
@@ -121,6 +130,14 @@ func (c *Class) New(format string, args ...interface{}) error {
 // this class. Wrap returns nil if err is nil.
 func (c *Class) Wrap(err error) error {
 	return c.create(3, err)
+}
+
+// WrapP stores into the error pointer if it contains a non-nil error an error contained
+// in this class. WrapP does nothing if the pointer or pointed at error is nil.
+func (c *Class) WrapP(err *error) {
+	if err != nil && *err != nil {
+		*err = c.create(3, *err)
+	}
 }
 
 // create constructs the error, or just adds the class to the error, keeping
