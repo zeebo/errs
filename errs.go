@@ -102,6 +102,13 @@ func Classes(err error) (classes []*Class) {
 	}
 }
 
+// Is checks if any of the underlying errors matches target
+func Is(err, target error) bool {
+	return IsFunc(err, func(err error) bool {
+		return err == target
+	})
+}
+
 // IsFunc checks if any of the underlying errors matches the func
 func IsFunc(err error, is func(err error) bool) bool {
 	causes := 0

@@ -151,6 +151,30 @@ func TestErrs(t *testing.T) {
 			assert(t, classes[1] == &foo)
 		})
 
+		t.Run("Is", func(t *testing.T) {
+			alpha := New("alpha")
+			beta := New("beta")
+			gamma := New("gamma")
+			delta := New("delta")
+			epsilon := New("epsilon")
+
+			assert(t, Is(nil, nil))
+			assert(t, !Is(nil, alpha))
+			assert(t, Is(alpha, alpha))
+			assert(t, !Is(alpha, beta))
+
+			err := Combine(
+				alpha,
+				foo.Wrap(bar.Wrap(baz.Wrap(beta))),
+				bar.Wrap(Combine(gamma, baz.Wrap(delta))),
+			)
+			assert(t, Is(err, alpha))
+			assert(t, Is(err, beta))
+			assert(t, Is(err, gamma))
+			assert(t, Is(err, delta))
+			assert(t, !Is(err, epsilon))
+		})
+
 		t.Run("IsFunc", func(t *testing.T) {
 			alpha := New("alpha")
 			beta := New("beta")
