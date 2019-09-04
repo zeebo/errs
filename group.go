@@ -19,19 +19,24 @@ func Combine(errs ...error) error {
 }
 
 // Add adds non-empty errors to the Group.
-func (group *Group) Add(errs ...error) {
+func (g *Group) Add(errs ...error) {
 	for _, err := range errs {
-		if err != nil {
-			*group = append(*group, err)
-		}
+		g.Append(err)
+	}
+}
+
+// Append adds a non-empty error to the Group.
+func (g *Group) Append(err error) {
+	if err != nil {
+		*g = append(*g, err)
 	}
 }
 
 // Err returns an error containing all of the non-nil errors.
 // If there was only one error, it will return it.
 // If there were none, it returns nil.
-func (group Group) Err() error {
-	sanitized := group.sanitize()
+func (g Group) Err() error {
+	sanitized := g.sanitize()
 	if len(sanitized) == 0 {
 		return nil
 	}
@@ -42,18 +47,17 @@ func (group Group) Err() error {
 }
 
 // sanitize returns group that doesn't contain nil-s
-func (group Group) sanitize() Group {
+func (g Group) sanitize() Group {
 	// sanity check for non-nil errors
-	for i, err := range group {
+	for i, err := range g {
 		if err == nil {
-			sanitized := make(Group, 0, len(group)-1)
-			sanitized = append(sanitized, group[:i]...)
-			sanitized.Add(group[i+1:]...)
+			sanitized := make(Group, 0, len(g)-1)
+			sanitized = append(sanitized, g[:i]...)
+			sanitized.Add(g[i+1:]...)
 			return sanitized
 		}
 	}
-
-	return group
+	return g
 }
 
 // groupedErrors is a list of non-empty errors
@@ -68,17 +72,13 @@ func (g groupedErrors) Cause() error {
 }
 
 // Unwrap returns the first error.
-func (g groupedErrors) Unwrap() error {
-	return g.Cause()
-}
+func (g groupedErrors) Unwrap() error { return g.Cause() }
 
 // Ungroup returns all errors.
-func (g groupedErrors) Ungroup() []error {
-	return g
-}
+func (g groupedErrors) Ungroup() []error { return g }
 
 // Is is for go1.13 errors so that the Is function reports true if the error is
-// part of the class.
+// part of the group.
 func (g groupedErrors) Is(target error) bool {
 	for _, err := range g {
 		if errors.Is(err, target) {

@@ -30,13 +30,13 @@ func TestGroup(t *testing.T) {
 
 	t.Run("Single", func(t *testing.T) {
 		var group Group
-		group.Add(alpha)
+		group.Add(alpha, nil)
 		assert.Equal(t, group.Err(), alpha)
 	})
 
 	t.Run("Multiple", func(t *testing.T) {
 		var group Group
-		group.Add(alpha)
+		group.Append(alpha)
 		group.Add(nil, beta)
 		err := group.Err()
 
