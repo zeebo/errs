@@ -8,10 +8,9 @@ import (
 	"runtime"
 )
 
-// Namer is implemented by all errors returned in this package. It returns a
-// name for the tag of the error, and a boolean indicating if the name is
-// valid.
-type Namer interface{ Name() (string, bool) }
+//
+// root helpers
+//
 
 // Errorf does the same thing as fmt.Errorf(...) except it captures a stack
 // trace on creation.
@@ -67,6 +66,9 @@ func (t Tag) Wrap(err error) error {
 // errors.Is, or as just an easy way to have a string constant error.
 func (t Tag) Error() string { return string(t) }
 
+// Name returns the name of the tag.
+func (t Tag) Name() (string, bool) { return string(t), true }
+
 // create constructs the error, or just adds the class to the error, keeping
 // track of the stack if it needs to construct it.
 func (t Tag) wrap(err error) error {
@@ -107,11 +109,6 @@ type errorT struct {
 	err error
 	pcs []uintptr
 }
-
-var ( // ensure *errorT implements the helper interfaces.
-	_ Namer = (*errorT)(nil)
-	_ error = (*errorT)(nil)
-)
 
 // errorT implements the error interface.
 func (e *errorT) Error() string {

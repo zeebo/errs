@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sort"
+	"strings"
 )
 
 // Group is a list of errors.
@@ -88,6 +90,24 @@ func (g groupedErrors) Is(target error) bool {
 
 // Error returns error string delimited by semicolons.
 func (g groupedErrors) Error() string { return fmt.Sprintf("%v", g) }
+
+// Name returns the set of names in the group in sorted order so that it is
+// stable.
+func (g groupedErrors) Name() (string, bool) {
+	var names []string
+	for _, err := range g {
+		if namer, ok := err.(interface{ Name() (string, bool) }); ok {
+			if name, ok := namer.Name(); ok {
+				names = append(names, name)
+			}
+		}
+	}
+	if len(names) == 0 {
+		return "group", true
+	}
+	sort.Strings(names)
+	return "group: " + strings.Join(names, "; "), true
+}
 
 // Format handles the formatting of the error. Using a "+" on the format
 // string specifier will cause the errors to be formatted with "+" and

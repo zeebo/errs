@@ -166,9 +166,9 @@ func groupFormat() {
 	//
 	// group:
 	// --- first
-	//     ... stack trace
+	// 	... stack trace
 	// --- second
-	//     ... stack trace
+	// 	... stack trace
 }
 ```
 
@@ -176,11 +176,11 @@ func groupFormat() {
 
 errs is released under an MIT License. If you want to contribute, be sure to add yourself to the list in AUTHORS.
 
-[Errorf]: https://godoc.org/github.com/zeebo/errs#Errorf
-[Wrap]: https://godoc.org/github.com/zeebo/errs#Wrap
-[Tag]: https://godoc.org/github.com/zeebo/errs#Tag
-[TagWrap]: https://godoc.org/github.com/zeebo/errs#Tag.Wrap
-[Tags]: https://godoc.org/github.com/zeebo/errs#Tags
-[Group]: https://godoc.org/github.com/zeebo/errs#Group
-[GroupAdd]: https://godoc.org/github.com/zeebo/errs#Group.Add
-[GroupErr]: https://godoc.org/github.com/zeebo/errs#Group.Err
+[Errorf]: https://godoc.org/github.com/zeebo/errs/v2#Errorf
+[Wrap]: https://godoc.org/github.com/zeebo/errs/v2#Wrap
+[Tag]: https://godoc.org/github.com/zeebo/errs/v2#Tag
+[TagWrap]: https://godoc.org/github.com/zeebo/errs/v2#Tag.Wrap
+[Tags]: https://godoc.org/github.com/zeebo/errs/v2#Tags
+[Group]: https://godoc.org/github.com/zeebo/errs/v2#Group
+[GroupAdd]: https://godoc.org/github.com/zeebo/errs/v2#Group.Add
+[GroupErr]: https://godoc.org/github.com/zeebo/errs/v2#Group.Err

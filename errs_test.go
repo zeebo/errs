@@ -35,28 +35,6 @@ func TestErrs(t *testing.T) {
 			assert.That(t, errors.Is(foo.Wrap(bar.Errorf("t")), foo))
 			assert.That(t, errors.Is(foo.Wrap(bar.Errorf("t")), bar))
 			assert.That(t, !errors.Is(foo.Wrap(bar.Errorf("t")), baz))
-
-			alpha := Errorf("alpha")
-			beta := Errorf("beta")
-			gamma := Errorf("gamma")
-			delta := Errorf("delta")
-			epsilon := Errorf("epsilon")
-
-			assert.That(t, errors.Is(nil, nil))
-			assert.That(t, !errors.Is(nil, alpha))
-			assert.That(t, errors.Is(alpha, alpha))
-			assert.That(t, !errors.Is(alpha, beta))
-
-			err := Combine(
-				alpha,
-				foo.Wrap(bar.Wrap(baz.Wrap(beta))),
-				bar.Wrap(Combine(gamma, baz.Wrap(delta))),
-			)
-			assert.That(t, errors.Is(err, alpha))
-			assert.That(t, errors.Is(err, beta))
-			assert.That(t, errors.Is(err, gamma))
-			assert.That(t, errors.Is(err, delta))
-			assert.That(t, !errors.Is(err, epsilon))
 		})
 
 		t.Run("Same Name", func(t *testing.T) {
@@ -65,18 +43,17 @@ func TestErrs(t *testing.T) {
 
 			assert.That(t, errors.Is(t1.Errorf("t"), t1))
 			assert.That(t, errors.Is(t1.Errorf("t"), t2))
-
 			assert.That(t, errors.Is(t2.Errorf("t"), t1))
 			assert.That(t, errors.Is(t2.Errorf("t"), t2))
 		})
 
-		t.Run("Wrap Nil", func(t *testing.T) {
+		t.Run("Wrap", func(t *testing.T) {
 			assert.That(t, foo.Wrap(nil) == nil)
 		})
 	})
 
 	t.Run("Error", func(t *testing.T) {
-		t.Run("Format Contains Classes", func(t *testing.T) {
+		t.Run("Format", func(t *testing.T) {
 			assert.That(t, strings.Contains(foo.Errorf("t").Error(), "foo"))
 			assert.That(t, strings.Contains(bar.Errorf("t").Error(), "bar"))
 
@@ -100,13 +77,6 @@ func TestErrs(t *testing.T) {
 			assert.That(t, nil == errors.Unwrap(nil))
 			assert.That(t, err == errors.Unwrap(foo.Wrap(err)))
 			assert.That(t, err == errors.Unwrap(bar.Wrap(err)))
-		})
-
-		t.Run("Cause", func(t *testing.T) {
-			err := fmt.Errorf("t")
-
-			assert.That(t, err == foo.Wrap(err).(*errorT).Cause())
-			assert.That(t, err == bar.Wrap(foo.Wrap(err)).(*errorT).Cause().(*errorT).Cause())
 		})
 
 		t.Run("Tags", func(t *testing.T) {
@@ -138,6 +108,8 @@ func TestErrs(t *testing.T) {
 		})
 
 		t.Run("Name", func(t *testing.T) {
+			type Namer interface{ Name() (string, bool) }
+
 			name, ok := Errorf("t").(Namer).Name()
 			assert.That(t, !ok)
 			assert.That(t, name == "")
@@ -151,12 +123,9 @@ func TestErrs(t *testing.T) {
 			assert.That(t, name == "bar")
 		})
 
-		t.Run("Empty String", func(t *testing.T) {
+		t.Run("Empty", func(t *testing.T) {
 			assert.That(t, empty.Errorf("test").Error() == `test`)
 			assert.That(t, foo.Wrap(empty.Errorf("test")).Error() == `foo: test`)
-		})
-
-		t.Run("Empty Format", func(t *testing.T) {
 			assert.That(t, empty.Errorf("").Error() == "")
 			assert.That(t, foo.Errorf("").Error() == "foo")
 		})
