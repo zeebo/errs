@@ -50,6 +50,14 @@ func TestErrs(t *testing.T) {
 		t.Run("Wrap", func(t *testing.T) {
 			assert.That(t, foo.Wrap(nil) == nil)
 		})
+
+		t.Run("Empty", func(t *testing.T) {
+			assert.That(t, empty.Errorf("test").Error() == `test`)
+			assert.That(t, foo.Wrap(empty.Errorf("test")).Error() == `foo: test`)
+			assert.That(t, empty.Errorf("").Error() == "")
+			assert.That(t, foo.Errorf("").Error() == "foo")
+			assert.That(t, errors.Is(empty.Wrap(foo), empty))
+		})
 	})
 
 	t.Run("Error", func(t *testing.T) {
@@ -121,13 +129,6 @@ func TestErrs(t *testing.T) {
 			name, ok = bar.Wrap(foo.Errorf("t")).(Namer).Name()
 			assert.That(t, ok)
 			assert.That(t, name == "bar")
-		})
-
-		t.Run("Empty", func(t *testing.T) {
-			assert.That(t, empty.Errorf("test").Error() == `test`)
-			assert.That(t, foo.Wrap(empty.Errorf("test")).Error() == `foo: test`)
-			assert.That(t, empty.Errorf("").Error() == "")
-			assert.That(t, foo.Errorf("").Error() == "foo")
 		})
 
 		t.Run("Immutable", func(t *testing.T) {
