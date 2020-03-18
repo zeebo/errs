@@ -52,11 +52,17 @@ func TestErrs(t *testing.T) {
 		})
 
 		t.Run("Empty", func(t *testing.T) {
-			assert.That(t, empty.Errorf("test").Error() == `test`)
-			assert.That(t, foo.Wrap(empty.Errorf("test")).Error() == `foo: test`)
-			assert.That(t, empty.Errorf("").Error() == "")
-			assert.That(t, foo.Errorf("").Error() == "foo")
+			assert.Equal(t, empty.Errorf("test").Error(), `test`)
+			assert.Equal(t, foo.Wrap(empty.Errorf("test")).Error(), `foo: test`)
+			assert.Equal(t, empty.Errorf("").Error(), "")
+			assert.Equal(t, foo.Errorf("").Error(), "foo")
 			assert.That(t, errors.Is(empty.Wrap(foo), empty))
+		})
+
+		t.Run("Hoist", func(t *testing.T) {
+			assert.Equal(t,
+				foo.Errorf("context: %w", foo.Wrap(Errorf("test"))).Error(),
+				`foo: context: test`)
 		})
 	})
 
@@ -82,9 +88,9 @@ func TestErrs(t *testing.T) {
 		t.Run("Unwrap", func(t *testing.T) {
 			err := fmt.Errorf("t")
 
-			assert.That(t, nil == errors.Unwrap(nil))
-			assert.That(t, err == errors.Unwrap(foo.Wrap(err)))
-			assert.That(t, err == errors.Unwrap(bar.Wrap(err)))
+			assert.Equal(t, nil, errors.Unwrap(nil))
+			assert.Equal(t, err, errors.Unwrap(foo.Wrap(err)))
+			assert.Equal(t, err, errors.Unwrap(bar.Wrap(err)))
 		})
 
 		t.Run("Tags", func(t *testing.T) {
@@ -94,25 +100,25 @@ func TestErrs(t *testing.T) {
 
 			err = foo.Wrap(err)
 			tags = Tags(err)
-			assert.That(t, len(tags) == 1)
-			assert.That(t, tags[0] == foo)
+			assert.Equal(t, len(tags), 1)
+			assert.Equal(t, tags[0], foo)
 
 			err = foo.Wrap(err)
 			tags = Tags(err)
-			assert.That(t, len(tags) == 1)
-			assert.That(t, tags[0] == foo)
+			assert.Equal(t, len(tags), 1)
+			assert.Equal(t, tags[0], foo)
 
 			err = bar.Wrap(err)
 			tags = Tags(err)
-			assert.That(t, len(tags) == 2)
-			assert.That(t, tags[0] == bar)
-			assert.That(t, tags[1] == foo)
+			assert.Equal(t, len(tags), 2)
+			assert.Equal(t, tags[0], bar)
+			assert.Equal(t, tags[1], foo)
 
 			err = bar.Wrap(err)
 			tags = Tags(err)
-			assert.That(t, len(tags) == 2)
-			assert.That(t, tags[0] == bar)
-			assert.That(t, tags[1] == foo)
+			assert.Equal(t, len(tags), 2)
+			assert.Equal(t, tags[0], bar)
+			assert.Equal(t, tags[1], foo)
 		})
 
 		t.Run("Name", func(t *testing.T) {
@@ -120,15 +126,15 @@ func TestErrs(t *testing.T) {
 
 			name, ok := Errorf("t").(Namer).Name()
 			assert.That(t, !ok)
-			assert.That(t, name == "")
+			assert.Equal(t, name, "")
 
 			name, ok = foo.Errorf("t").(Namer).Name()
 			assert.That(t, ok)
-			assert.That(t, name == "foo")
+			assert.Equal(t, name, "foo")
 
 			name, ok = bar.Wrap(foo.Errorf("t")).(Namer).Name()
 			assert.That(t, ok)
-			assert.That(t, name == "bar")
+			assert.Equal(t, name, "bar")
 		})
 
 		t.Run("Immutable", func(t *testing.T) {
@@ -136,9 +142,9 @@ func TestErrs(t *testing.T) {
 			errfoo := foo.Wrap(err)
 			errbar := bar.Wrap(err)
 
-			assert.That(t, err.Error() == "")
-			assert.That(t, errfoo.Error() == "foo")
-			assert.That(t, errbar.Error() == "bar")
+			assert.Equal(t, err.Error(), "")
+			assert.Equal(t, errfoo.Error(), "foo")
+			assert.Equal(t, errbar.Error(), "bar")
 		})
 
 		t.Run("Race", func(t *testing.T) {

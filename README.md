@@ -1,8 +1,11 @@
 # errs/v2
 
-[![GoDoc](https://godoc.org/github.com/zeebo/errs?status.svg)](https://godoc.org/github.com/zeebo/errs)
-[![Sourcegraph](https://sourcegraph.com/github.com/zeebo/errs/-/badge.svg)](https://sourcegraph.com/github.com/zeebo/errs?badge)
-[![Go Report Card](https://goreportcard.com/badge/github.com/zeebo/errs)](https://goreportcard.com/report/github.com/zeebo/errs)
+<p>
+  <a href="https://pkg.go.dev/github.com/zeebo/errs/v2"><img src="https://img.shields.io/badge/doc-reference-007d9b?logo=go&style=flat-square" alt="go.dev" /></a>
+  <a href="https://goreportcard.com/report/github.com/zeebo/errs"><img src="https://goreportcard.com/badge/github.com/zeebo/errs?style=flat-square" alt="Go Report Card" /></a>
+  <a href="https://sourcegraph.com/github.com/zeebo/errs?badge"><img src="https://sourcegraph.com/github.com/zeebo/errs/-/badge.svg?style=flat-square" alt="SourceGraph" /></a>
+</p>
+
 
 errs is a package for making errors friendly and easy.
 
@@ -88,7 +91,7 @@ func deep() {
 
 In the above example, both `errors.Is(deep1(), Package)` and `errors.Is(deep1()), Unauthorized)` would return `true`, and the stack trace would only be recorded once at the `deep2` call.
 
-In addition, when an error has been wrapped, wrapping it again with the same class will not do anything. For example:
+In addition, when an error has been wrapped, wrapping it again with the same tag will not do anything. For example:
 
 ```go
 func doubleWrap() {
@@ -100,6 +103,23 @@ func doubleWrap() {
 ```
 
 This is to make it an easier decision if you should wrap or not (you should).
+
+Tags will also be "hoisted" when they match an incoming error being wrapped with the `"%w"` format verb. For example:
+
+```go
+func hoistWrap() {
+	err1 := Package.Errorf("foo")
+	err2 := Package.Errorf("blah: %w", err)
+	fmt.Println(err1)
+	fmt.Println(err2)
+
+	// output:
+	// mypackage: foo
+	// mypackage: blah: foo
+}
+```
+
+This only works if the format string ends with `"%w"` and an error is the last argument.
 
 ### Utilities
 
@@ -179,6 +199,7 @@ errs is released under an MIT License. If you want to contribute, be sure to add
 [Errorf]: https://godoc.org/github.com/zeebo/errs/v2#Errorf
 [Wrap]: https://godoc.org/github.com/zeebo/errs/v2#Wrap
 [Tag]: https://godoc.org/github.com/zeebo/errs/v2#Tag
+[Tagged]: https://godoc.org/github.com/zeebo/errs/v2#Tagged
 [TagWrap]: https://godoc.org/github.com/zeebo/errs/v2#Tag.Wrap
 [Tags]: https://godoc.org/github.com/zeebo/errs/v2#Tags
 [Group]: https://godoc.org/github.com/zeebo/errs/v2#Group

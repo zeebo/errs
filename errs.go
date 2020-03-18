@@ -53,6 +53,18 @@ type Tag string
 // New constructs an error with the format string that will be contained by
 // this class. This is the same as calling Wrap(fmt.Errorf(...)).
 func (t Tag) Errorf(format string, args ...interface{}) error {
+	// Check for Tag "hoisting": if the format string ends with "%w" and the last argument
+	// is a wrapped error with the same non-empty tag, then we want to use the wrapped
+	// error for the "%w" verb, keep the stack trace from the current error, and then
+	// wrap it with the tag.
+	if len(format) >= 2 && format[len(format)-2:] == "%w" && len(args) > 0 && t != "" {
+		if e, ok := args[len(args)-1].(*errorT); ok && e.tag == t {
+			args[len(args)-1] = e.err
+			e.err = fmt.Errorf(format, args...)
+			return e
+		}
+	}
+
 	return t.wrap(fmt.Errorf(format, args...))
 }
 
