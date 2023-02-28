@@ -8,9 +8,9 @@ import (
 	"testing"
 )
 
-type causeError struct{ error }
+type unwrapError struct{ error }
 
-func (c causeError) Cause() error { return c.error }
+func (c unwrapError) Unwrap() error { return c.error }
 
 func TestErrs(t *testing.T) {
 	assert := func(t *testing.T, v bool, err ...interface{}) {
@@ -64,11 +64,7 @@ func TestErrs(t *testing.T) {
 		t.Run("WrapP", func(t *testing.T) {
 			err := func() (err error) {
 				defer foo.WrapP(&err)
-
-				if 1 == 1 {
-					return errors.New("err")
-				}
-				return nil
+				return errors.New("err")
 			}()
 
 			t.Logf("%+v", err)
@@ -108,19 +104,19 @@ func TestErrs(t *testing.T) {
 			assert(t, err == Unwrap(err))
 			assert(t, err == Unwrap(foo.Wrap(err)))
 			assert(t, err == Unwrap(bar.Wrap(foo.Wrap(err))))
-			assert(t, err == Unwrap(causeError{error: err}))
+			assert(t, err == Unwrap(unwrapError{error: err}))
 
 			// ensure a trivial cycle eventually completes
-			loop := new(causeError)
+			loop := new(unwrapError)
 			loop.error = loop
 			assert(t, loop == Unwrap(loop))
 		})
 
-		t.Run("Cause", func(t *testing.T) {
+		t.Run("Unwrap Method", func(t *testing.T) {
 			err := fmt.Errorf("t")
 
-			assert(t, err == foo.Wrap(err).(*errorT).Cause())
-			assert(t, err == bar.Wrap(foo.Wrap(err)).(*errorT).Cause().(*errorT).Cause())
+			assert(t, err == foo.Wrap(err).(*errorT).Unwrap())
+			assert(t, err == bar.Wrap(foo.Wrap(err)).(*errorT).Unwrap().(*errorT).Unwrap())
 		})
 
 		t.Run("Classes", func(t *testing.T) {
