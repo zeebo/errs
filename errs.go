@@ -12,6 +12,13 @@ import (
 // valid.
 type Namer interface{ Name() (string, bool) }
 
+// Causer is implemented by all errors returned in this package. It returns
+// the underlying cause of the error, or nil if there is no underlying cause.
+//
+// Deprecated: check for the 'Unwrap()' interface from the stdlib errors package
+// instead.
+type Causer interface{ Cause() error }
+
 // New returns an error not contained in any class. This is the same as calling
 // fmt.Errorf(...) except it captures a stack trace on creation.
 func New(format string, args ...interface{}) error {
@@ -39,15 +46,26 @@ func WrapP(err *error) {
 // not run forever.
 const maxUnwrap = 100
 
-// Unwrap returns the underlying error, if any, or just the error.
+// Unwrap returns the final, most underlying error, if any, or just the error.
+//
+// Deprecated: Prefer errors.Is() and errors.As().
 func Unwrap(err error) error {
 	for i := 0; err != nil && i < maxUnwrap; i++ {
 		var nerr error
 
 		switch e := err.(type) {
+		case Causer:
+			nerr = e.Cause()
+
 		case interface{ Unwrap() error }:
 			nerr = e.Unwrap()
 
+		case interface{ Ungroup() []error }:
+			// consider the first error to be the "main" error.
+			errs := e.Ungroup()
+			if len(errs) > 0 {
+				nerr = errs[0]
+			}
 		case interface{ Unwrap() []error }:
 			// consider the first error to be the "main" error.
 			errs := e.Unwrap()
@@ -86,7 +104,16 @@ func IsFunc(err error, is func(err error) bool) bool {
 		switch u := err.(type) {
 		case interface{ Unwrap() error }:
 			err = u.Unwrap()
+		case Causer:
+			err = u.Cause()
 
+		case interface{ Ungroup() []error }:
+			for _, err := range u.Ungroup() {
+				if IsFunc(err, is) {
+					return true
+				}
+			}
+			return false
 		case interface{ Unwrap() []error }:
 			for _, err := range u.Unwrap() {
 				if IsFunc(err, is) {
@@ -109,7 +136,8 @@ func IsFunc(err error, is func(err error) bool) bool {
 // errors are part of the class.
 type Class string
 
-// Has returns true if the passed in error was wrapped by this class.
+// Has returns true if the passed in error (or any error wrapped by it) has
+// this class.
 func (c *Class) Has(err error) bool {
 	return IsFunc(err, func(err error) bool {
 		errt, ok := err.(*errorT)
@@ -179,8 +207,9 @@ type errorT struct {
 }
 
 var ( // ensure *errorT implements the helper interfaces.
-	_ Namer = (*errorT)(nil)
-	_ error = (*errorT)(nil)
+	_ Namer  = (*errorT)(nil)
+	_ Causer = (*errorT)(nil)
+	_ error  = (*errorT)(nil)
 )
 
 // Stack returns the pcs for the stack trace associated with the error.
@@ -207,7 +236,13 @@ func (e *errorT) Format(f fmt.State, c rune) {
 	}
 }
 
-// Unwrap returns the underlying error.
+// Cause implements the interface wrapping errors were previously
+// expected to implement to allow getting at underlying causes.
+func (e *errorT) Cause() error {
+	return e.err
+}
+
+// Unwrap returns the immediate underlying error.
 func (e *errorT) Unwrap() error {
 	return e.err
 }
