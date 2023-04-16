@@ -137,6 +137,22 @@ func (c *Class) WrapP(err *error) {
 	}
 }
 
+// Instance creates a class membership object which implements the error
+// interface and allows errors.Is() to check whether given errors are
+// (or contain) an instance of this class.
+//
+// This makes possible a construct like the following:
+//
+//	if errors.Is(err, MyClass.Instance()) {
+//		fmt.Printf("err is an instance of MyClass")
+//	}
+//
+// ..without requiring the Class type to implement the error interface itself,
+// as that would open the door to sundry misunderstandings and misusage.
+func (c *Class) Instance() error {
+	return (*classMembershipChecker)(c)
+}
+
 // create constructs the error, or just adds the class to the error, keeping
 // track of the stack if it needs to construct it.
 func (c *Class) create(depth int, err error) error {
@@ -165,6 +181,12 @@ func (c *Class) create(depth int, err error) error {
 	}
 
 	return errt
+}
+
+type classMembershipChecker Class
+
+func (cmc *classMembershipChecker) Error() string {
+	panic("classMembershipChecker used as concrete error! don't do that")
 }
 
 //
@@ -218,6 +240,14 @@ func (e *errorT) Name() (string, bool) {
 		return "", false
 	}
 	return string(*e.class), true
+}
+
+// Is determines whether an error is an instance of the given error class.
+//
+// Use with (*Class).Instance().
+func (e *errorT) Is(err error) bool {
+	cmc, ok := err.(*classMembershipChecker)
+	return ok && e.class == (*Class)(cmc)
 }
 
 // summarizeStack writes stack line entries to the writer.
