@@ -71,8 +71,8 @@ func (g groupedErrors) Cause() error {
 	return nil
 }
 
-// Unwrap returns the first error.
-func (g groupedErrors) Unwrap() error { return g.Cause() }
+// Unwrap returns the all of the errors.
+func (g groupedErrors) Unwrap() []error { return g }
 
 // Ungroup returns all errors.
 func (g groupedErrors) Ungroup() []error { return g }

@@ -43,7 +43,7 @@ func TestGroup(t *testing.T) {
 		assert.Equal(t, err.Error(), "alpha; beta")
 		assert.Equal(t, fmt.Sprintf("%v", err), "alpha; beta")
 		assert.That(t, strings.Count(fmt.Sprintf("%+v", err), "\n") > 0)
-		assert.Equal(t, errors.Unwrap(err), alpha)
+		assert.Equal(t, errors.Unwrap(err), nil)
 	})
 
 	t.Run("Name", func(t *testing.T) {
