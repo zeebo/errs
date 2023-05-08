@@ -70,6 +70,26 @@ func TestErrs(t *testing.T) {
 			t.Logf("%+v", err)
 			assert(t, foo.Has(err))
 		})
+
+		t.Run("Instance", func(t *testing.T) {
+			assert(t, errors.Is(foo.New("t"), foo.Instance()))
+			assert(t, !errors.Is(bar.New("t"), foo.Instance()))
+			assert(t, !errors.Is(baz.New("t"), foo.Instance()))
+
+			assert(t, !errors.Is(foo.New("t"), bar.Instance()))
+			assert(t, errors.Is(bar.New("t"), bar.Instance()))
+			assert(t, !errors.Is(baz.New("t"), bar.Instance()))
+
+			assert(t, errors.Is(bar.Wrap(foo.New("t")), foo.Instance()))
+			assert(t, errors.Is(bar.Wrap(foo.New("t")), bar.Instance()))
+			assert(t, !errors.Is(bar.Wrap(foo.New("t")), baz.Instance()))
+
+			assert(t, errors.Is(foo.Wrap(bar.New("t")), foo.Instance()))
+			assert(t, errors.Is(foo.Wrap(bar.New("t")), bar.Instance()))
+			assert(t, !errors.Is(foo.Wrap(bar.New("t")), baz.Instance()))
+
+			assert(t, !errors.Is(fmt.Errorf("non-zeebo-errs error"), foo.Instance()))
+		})
 	})
 
 	t.Run("Error", func(t *testing.T) {
