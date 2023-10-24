@@ -157,11 +157,27 @@ func TestErrs(t *testing.T) {
 			wg.Wait()
 		})
 	})
+
+	t.Run("Stack", func(t *testing.T) {
+		err := func() error {
+			return func() error {
+				return Errorf("test")
+			}()
+		}()
+		assert.That(t, !strings.Contains(fmt.Sprintf("%+v", err), "Errorf"))
+	})
 }
 
 func BenchmarkErrs(b *testing.B) {
 	foo := Tag("foo")
 	err := errors.New("bench")
+
+	b.Run("WrapNil", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_ = foo.Wrap(nil)
+		}
+	})
 
 	b.Run("Wrap", func(b *testing.B) {
 		b.ReportAllocs()

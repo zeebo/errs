@@ -87,7 +87,10 @@ func (t Tag) wrap(err error) error {
 	if err == nil {
 		return nil
 	}
+	return t.wrapSlow(err)
+}
 
+func (t Tag) wrapSlow(err error) error {
 	var pcs []uintptr
 	if err, ok := err.(*errorT); ok {
 		if t == "" || err.tag == t {
@@ -103,9 +106,9 @@ func (t Tag) wrap(err error) error {
 	}
 
 	if e.pcs == nil {
-		e.pcs = make([]uintptr, 64)
-		n := runtime.Callers(3, e.pcs)
-		e.pcs = e.pcs[:n:n]
+		var buf [64]uintptr
+		n := runtime.Callers(4, buf[:])
+		e.pcs = append([]uintptr(nil), buf[:n]...)
 	}
 
 	return e
