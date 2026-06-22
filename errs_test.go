@@ -109,11 +109,11 @@ func TestErrs(t *testing.T) {
 
 			assert(t,
 				!strings.Contains(fmt.Sprintf("%v", err), "\n"),
-				"%v format contains newline",
+				"plain format contains newline",
 			)
 			assert(t,
 				strings.Contains(fmt.Sprintf("%+v", err), "\n"),
-				"%+v format does not contain newline",
+				"detailed format does not contain newline",
 			)
 		})
 
